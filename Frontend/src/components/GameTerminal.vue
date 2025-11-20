@@ -1,39 +1,39 @@
 <template>
-  <div class="flex flex-col h-screen bg-[#1a1b26] text-[#a9b1d6] font-mono p-4">
+  <div class="game-container">
     
     <!-- Login Overlay -->
-    <div v-if="!hasJoined" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-        <div class="bg-[#16161e] p-8 rounded border border-[#7aa2f7] w-96">
-            <h2 class="text-2xl mb-4 text-[#7aa2f7]">Enter World</h2>
+    <div v-if="!hasJoined" class="login-overlay">
+        <div class="login-box">
+            <h2 class="login-title">Enter World</h2>
             <input 
                 v-model="username" 
                 @keyup.enter="joinGame"
                 type="text" 
-                class="w-full bg-[#1a1b26] border border-[#565f89] rounded px-4 py-2 mb-4 focus:outline-none focus:border-[#7aa2f7]"
+                class="login-input"
                 placeholder="Username"
                 autofocus
             />
-            <button @click="joinGame" class="w-full bg-[#7aa2f7] text-[#1a1b26] font-bold py-2 rounded hover:bg-[#2ac3de]">
+            <button @click="joinGame" class="login-button">
                 Join Game
             </button>
         </div>
     </div>
 
     <!-- Game Output -->
-    <div class="flex-1 overflow-y-auto border border-[#7aa2f7] p-4 rounded mb-4 bg-black/30 shadow-inner" ref="outputContainer">
-        <div v-for="(msg, index) in messages" :key="index" v-html="msg" class="mb-1"></div>
+    <div class="game-output" ref="outputContainer">
+        <div v-for="(msg, index) in messages" :key="index" v-html="msg" class="message"></div>
     </div>
 
     <!-- Input Area -->
-    <div class="flex gap-2">
+    <div class="input-area">
         <input 
             v-model="userInput" 
             @keyup.enter="sendCommand"
             type="text" 
-            class="flex-1 bg-[#16161e] border border-[#7aa2f7] rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#7aa2f7]"
+            class="command-input"
             placeholder="Enter command..."
         />
-        <button @click="sendCommand" class="bg-[#7aa2f7] text-[#1a1b26] font-bold px-6 py-2 rounded hover:bg-[#2ac3de] transition">
+        <button @click="sendCommand" class="send-button">
             Send
         </button>
     </div>
@@ -76,7 +76,126 @@ const sendCommand = async () => {
 </script>
 
 <style scoped>
-/* Custom scrollbar for retro feel */
+.game-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #1a1b26;
+  color: #a9b1d6;
+  font-family: 'Courier New', monospace;
+  padding: 1rem;
+}
+
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.login-box {
+  background-color: #16161e;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  border: 1px solid #7aa2f7;
+  width: 24rem;
+  max-width: 90%;
+}
+
+.login-title {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #7aa2f7;
+  text-align: center;
+}
+
+.login-input {
+  width: 100%;
+  background-color: #1a1b26;
+  border: 1px solid #565f89;
+  border-radius: 0.25rem;
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  color: #a9b1d6;
+  font-family: inherit;
+}
+
+.login-input:focus {
+  outline: none;
+  border-color: #7aa2f7;
+}
+
+.login-button {
+  width: 100%;
+  background-color: #7aa2f7;
+  color: #1a1b26;
+  font-weight: bold;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.login-button:hover {
+  background-color: #2ac3de;
+}
+
+.game-output {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #7aa2f7;
+  padding: 1rem;
+  border-radius: 0.25rem;
+  margin-bottom: 1rem;
+  background-color: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.message {
+  margin-bottom: 0.25rem;
+}
+
+.input-area {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.command-input {
+  flex: 1;
+  background-color: #16161e;
+  border: 1px solid #7aa2f7;
+  border-radius: 0.25rem;
+  padding: 0.5rem 1rem;
+  color: #a9b1d6;
+  font-family: inherit;
+}
+
+.command-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #7aa2f7;
+}
+
+.send-button {
+  background-color: #7aa2f7;
+  color: #1a1b26;
+  font-weight: bold;
+  padding: 0.5rem 1.5rem;
+  border-radius: 0.25rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-family: inherit;
+}
+
+.send-button:hover {
+  background-color: #2ac3de;
+}
+
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }

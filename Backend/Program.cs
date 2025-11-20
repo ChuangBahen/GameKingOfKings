@@ -1,5 +1,6 @@
 using KingOfKings.Backend.Data;
 using KingOfKings.Backend.Hubs;
+using KingOfKings.Backend.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
