@@ -1,0 +1,15 @@
+Backend/.vs/
+Backend/obj/
+Backend/bin/
+*.csProj.user
+*.pubxml.user
+
+.DS_Store
+node_modules
+.vite/
+Frontend/dist
+*.log
+*.env
+Frontend/dist.zip
+/.serena
+/.vscode
