@@ -1,15 +1,51 @@
+using KingOfKings.Backend.Data;
+using KingOfKings.Backend.Models;
 using KingOfKings.Backend.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace KingOfKings.Backend.Hubs;
 
+/// <summary>
+/// 遊戲 SignalR Hub - 處理即時遊戲通訊
+/// </summary>
+[Authorize]
 public class GameHub : Hub
 {
     private readonly IGameEngine _gameEngine;
+    private readonly IServiceProvider _serviceProvider;
 
-    public GameHub(IGameEngine gameEngine)
+    public GameHub(IGameEngine gameEngine, IServiceProvider serviceProvider)
     {
         _gameEngine = gameEngine;
+        _serviceProvider = serviceProvider;
+    }
+
+    /// <summary>
+    /// 從 JWT Claims 取得已認證的 UserId
+    /// </summary>
+    private Guid GetAuthenticatedUserId()
+    {
+        var userIdClaim = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                       ?? Context.User?.FindFirst("UserId")?.Value;
+
+        if (Guid.TryParse(userIdClaim, out var userId))
+        {
+            return userId;
+        }
+        return Guid.Empty;
+    }
+
+    /// <summary>
+    /// 從 JWT Claims 取得已認證的 Username
+    /// </summary>
+    private string GetAuthenticatedUsername()
+    {
+        return Context.User?.FindFirst(ClaimTypes.Name)?.Value
+            ?? Context.User?.Identity?.Name
+            ?? string.Empty;
     }
 
     public async Task SendMessage(string user, string message)
@@ -19,70 +55,87 @@ public class GameHub : Hub
 
     public async Task SendCommand(string command)
     {
-        // TODO: Get actual PlayerId from Context/Auth
-        // For now, we'll assume a temporary ID or handle it in JoinGame
-        // Let's just use a hardcoded ID for testing if Context is empty, 
-        // but ideally we map ConnectionId to PlayerId.
-        
-        // Temporary: Create a random GUID for the session if not exists
-        var playerId = Guid.Empty; // Replace with real lookup
-        
-        // We need a way to identify the player. 
-        // For Phase 2 verification without full Auth, let's just pass the command to engine 
-        // and let engine handle a "default" player if needed, or fail.
-        // Actually, let's just echo for now if we can't find player, 
-        // OR we can implement a simple "Join" that sets a Context item.
-        
-        if (Context.Items.TryGetValue("PlayerId", out var idObj) && idObj is Guid id)
+        if (!Context.Items.TryGetValue("PlayerId", out var idObj) || idObj is not Guid playerId)
         {
-            playerId = id;
-        }
-        else
-        {
-             // Fallback for testing: try to find ANY player or create one?
-             // Let's just return error
-             await Clients.Caller.SendAsync("ReceiveMessage", "System", "You must join the game first.");
-             return;
+            await Clients.Caller.SendAsync("ReceiveMessage", "System", "請先加入遊戲。");
+            return;
         }
 
         var result = await _gameEngine.ProcessCommandAsync(playerId, command);
         await Clients.Caller.SendAsync("ReceiveMessage", "Game", result);
     }
 
-    public async Task JoinGame(string username)
+    /// <summary>
+    /// 加入遊戲 - 使用 JWT 認證的使用者資訊
+    /// </summary>
+    public async Task JoinGame()
     {
-        if (string.IsNullOrWhiteSpace(username))
+        var userId = GetAuthenticatedUserId();
+        var username = GetAuthenticatedUsername();
+
+        if (userId == Guid.Empty || string.IsNullOrEmpty(username))
         {
-            await Clients.Caller.SendAsync("ReceiveMessage", "System", "Username cannot be empty.");
+            await Clients.Caller.SendAsync("ReceiveMessage", "System", "認證失敗，請重新登入。");
             return;
         }
 
-        // Quick and dirty "Auth" for prototype: Find user/char or create
-        // In production, this would be in AuthService and return a Token
-        
-        // We need a scope because Hub might be long lived or we want to be safe with DbContext
-        // But Hub methods are invoked in a scope usually. 
-        // Let's inject IServiceProvider to be safe or just rely on GameEngine if we move this logic there.
-        // For now, let's just use a local scope here to access DB directly for "Login"
-        
-        // Note: We can't easily inject DbContext into Hub if we want to keep Hub lightweight, 
-        // but it's fine for this scale. 
-        // Better: Delegate to GameEngine or a new AuthService.
-        // Let's delegate to GameEngine for "Login" helper for now to keep Hub clean.
-        
-        var playerId = await _gameEngine.LoginOrRegisterAsync(username);
-        
+        // 從資料庫取得或建立玩家角色
+        var playerId = await GetOrCreatePlayerAsync(userId, username);
+
         if (playerId == Guid.Empty)
         {
-             await Clients.Caller.SendAsync("ReceiveMessage", "System", "Failed to join game.");
-             return;
+            await Clients.Caller.SendAsync("ReceiveMessage", "System", "無法加入遊戲，請重試。");
+            return;
         }
 
         Context.Items["PlayerId"] = playerId;
-        await Clients.Caller.SendAsync("ReceiveMessage", "System", $"Welcome, {username}! You have joined the world.");
-        
-        // Look at current room
+        await Clients.Caller.SendAsync("ReceiveMessage", "System", $"歡迎回來，{username}！你已進入萬王之王的世界。");
+
+        // 顯示目前房間
         var lookResult = await _gameEngine.ProcessCommandAsync(playerId, "look");
         await Clients.Caller.SendAsync("ReceiveMessage", "Game", lookResult);
+    }
+
+    /// <summary>
+    /// 取得或建立玩家角色
+    /// </summary>
+    private async Task<Guid> GetOrCreatePlayerAsync(Guid userId, string username)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var player = await db.PlayerCharacters.FirstOrDefaultAsync(p => p.UserId == userId);
+
+        if (player == null)
+        {
+            // 為已認證的使用者建立新角色
+            player = new PlayerCharacter
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Name = username,
+                Class = ClassType.Warrior, // 預設職業，未來可加入選擇流程
+                CurrentRoomId = 1,
+                Stats = new CharacterStats { Str = 12, Dex = 10, Int = 8, Wis = 8, Con = 12 }
+            };
+            db.PlayerCharacters.Add(player);
+            await db.SaveChangesAsync();
+        }
+
+        return player.Id;
+    }
+
+    public override async Task OnConnectedAsync()
+    {
+        var username = GetAuthenticatedUsername();
+        Console.WriteLine($"[GameHub] 使用者連線: {username}");
+        await base.OnConnectedAsync();
+    }
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        var username = GetAuthenticatedUsername();
+        Console.WriteLine($"[GameHub] 使用者斷線: {username}");
+        await base.OnDisconnectedAsync(exception);
     }
 }

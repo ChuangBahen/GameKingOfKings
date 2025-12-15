@@ -14,11 +14,14 @@ const props = defineProps<{
 
 const playerStore = usePlayerStore();
 
-// Filter combat messages only
+// 過濾戰鬥相關訊息 (支援中英文)
 const combatLog = computed(() => {
   return props.messages
-    .filter(m => m.user === 'Combat' || m.content.includes('Combat') || m.content.includes('damage') || m.content.includes('⚔️'))
-    .slice(-10); // Keep last 10 combat messages
+    .filter(m => m.user === 'Combat' ||
+      m.content.includes('Combat') || m.content.includes('戰鬥') ||
+      m.content.includes('damage') || m.content.includes('傷害') ||
+      m.content.includes('⚔️'))
+    .slice(-10); // 保留最近 10 條戰鬥訊息
 });
 
 // Get monster HP percentage
@@ -27,11 +30,14 @@ const monsterHpPercent = computed(() => {
   return (playerStore.combat.monsterHp / playerStore.combat.monsterMaxHp) * 100;
 });
 
-// Get message type for styling
+// 取得訊息類型以設定樣式 (支援中英文)
 const getLogType = (content: string): string => {
-  if (content.includes('damage') || content.includes('hit')) return 'damage';
-  if (content.includes('defeated') || content.includes('LEVEL UP')) return 'success';
-  if (content.includes('died') || content.includes('failed')) return 'warning';
+  if (content.includes('damage') || content.includes('hit') ||
+      content.includes('傷害') || content.includes('擊中')) return 'damage';
+  if (content.includes('defeated') || content.includes('LEVEL UP') ||
+      content.includes('打倒') || content.includes('升級')) return 'success';
+  if (content.includes('died') || content.includes('failed') ||
+      content.includes('陣亡') || content.includes('失敗')) return 'warning';
   return 'info';
 };
 </script>
@@ -77,17 +83,17 @@ const getLogType = (content: string): string => {
       <!-- Idle State -->
       <div v-else class="text-center">
         <div class="text-6xl opacity-30 mb-4">🌲</div>
-        <p class="text-gray-500 text-sm">No enemy in sight</p>
-        <p class="text-gray-600 text-xs mt-2">Use "kill &lt;monster&gt;" to start combat</p>
+        <p class="text-gray-500 text-sm">附近沒有敵人</p>
+        <p class="text-gray-600 text-xs mt-2">輸入 "kill &lt;怪物名稱&gt;" 開始戰鬥</p>
       </div>
     </div>
 
     <!-- Combat Log -->
     <div class="h-1/2 bg-black/80 p-4 font-mono text-sm overflow-y-auto border-t border-gray-700">
-      <div class="text-gray-500 text-xs mb-2 uppercase tracking-wider">Combat Log</div>
+      <div class="text-gray-500 text-xs mb-2 uppercase tracking-wider">戰鬥紀錄</div>
 
       <div v-if="combatLog.length === 0" class="text-gray-600 italic text-xs">
-        No combat activity yet...
+        尚無戰鬥紀錄...
       </div>
 
       <div
@@ -95,10 +101,10 @@ const getLogType = (content: string): string => {
         :key="index"
         class="mb-1 animate-fade-in-up"
       >
-        <span v-if="getLogType(log.content) === 'info'" class="text-blue-300">[INFO]</span>
-        <span v-else-if="getLogType(log.content) === 'warning'" class="text-yellow-500">[WARN]</span>
-        <span v-else-if="getLogType(log.content) === 'damage'" class="text-red-500">[DMG]</span>
-        <span v-else-if="getLogType(log.content) === 'success'" class="text-green-400">[WIN]</span>
+        <span v-if="getLogType(log.content) === 'info'" class="text-blue-300">[資訊]</span>
+        <span v-else-if="getLogType(log.content) === 'warning'" class="text-yellow-500">[警告]</span>
+        <span v-else-if="getLogType(log.content) === 'damage'" class="text-red-500">[傷害]</span>
+        <span v-else-if="getLogType(log.content) === 'success'" class="text-green-400">[勝利]</span>
         <span class="ml-2 text-gray-300" v-html="log.content"></span>
       </div>
     </div>

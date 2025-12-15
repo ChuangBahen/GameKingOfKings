@@ -27,7 +27,7 @@ watch(() => props.messages.length, () => {
 });
 
 const formatTime = (date: Date) => {
-  return date.toLocaleTimeString('en-US', { hour12: false });
+  return date.toLocaleTimeString('zh-TW', { hour12: false });
 };
 
 const getUserColor = (user: string) => {
@@ -37,6 +37,17 @@ const getUserColor = (user: string) => {
     case 'Combat': return 'text-red-400';
     case 'You': return 'text-cyan-400';
     default: return 'text-gray-400';
+  }
+};
+
+// 顯示名稱中文化
+const getDisplayName = (user: string) => {
+  switch (user) {
+    case 'System': return '系統';
+    case 'Game': return '遊戲';
+    case 'Combat': return '戰鬥';
+    case 'You': return '你';
+    default: return user;
   }
 };
 </script>
@@ -52,13 +63,13 @@ const getUserColor = (user: string) => {
       class="mb-2 animate-fade-in"
     >
       <span class="text-gray-500">[{{ formatTime(msg.timestamp) }}]</span>
-      <span :class="getUserColor(msg.user)" class="font-bold ml-1">{{ msg.user }}:</span>
+      <span :class="getUserColor(msg.user)" class="font-bold ml-1">{{ getDisplayName(msg.user) }}:</span>
       <!-- Render HTML content from server -->
       <span class="ml-2" v-html="msg.content"></span>
     </div>
 
     <div v-if="terminalMessages.length === 0" class="text-gray-500 italic">
-      Waiting for game data...
+      等待遊戲資料...
     </div>
   </div>
 </template>

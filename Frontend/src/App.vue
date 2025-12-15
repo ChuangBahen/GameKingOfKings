@@ -77,12 +77,12 @@ const connectSignalR = async () => {
 };
 
 const parseCombatMessage = (user: string, message: string) => {
-  // Detect combat start
-  if (message.includes('Combat started with')) {
-    const match = message.match(/Combat started with (.+?)!/);
+  // 偵測戰鬥開始 (中英文訊息都支援)
+  if (message.includes('Combat started with') || message.includes('開始與')) {
+    const match = message.match(/Combat started with (.+?)!/) || message.match(/開始與 (.+?) 戰鬥/);
     if (match) {
       const monsterName = match[1];
-      const hpMatch = message.match(/HP: (\d+)\/(\d+)/);
+      const hpMatch = message.match(/HP: (\d+)\/(\d+)/) || message.match(/生命值: (\d+)\/(\d+)/);
       if (hpMatch) {
         playerStore.startCombat(monsterName, parseInt(hpMatch[1]), parseInt(hpMatch[2]));
       } else {
@@ -91,8 +91,10 @@ const parseCombatMessage = (user: string, message: string) => {
     }
   }
 
-  // Detect combat end
-  if (message.includes('defeated!') || message.includes('have died') || message.includes('fled from combat')) {
+  // 偵測戰鬥結束 (中英文訊息都支援)
+  if (message.includes('defeated!') || message.includes('打倒了') ||
+      message.includes('have died') || message.includes('陣亡') ||
+      message.includes('fled from combat') || message.includes('逃離了戰鬥')) {
     playerStore.endCombat();
   }
 };
@@ -173,7 +175,7 @@ const handleLogout = () => {
           @click="handleLogout"
           class="w-full py-2 bg-red-600 rounded hover:bg-red-500 transition-colors font-bold"
         >
-          Logout
+          登出
         </button>
       </div>
 
@@ -194,7 +196,7 @@ const handleLogout = () => {
               v-model="commandInput"
               @keydown="handleKeyDown"
               type="text"
-              placeholder="Enter command... (type 'help' for commands)"
+              placeholder="輸入指令... (輸入 'help' 查看指令列表)"
               class="flex-1 bg-gray-900/50 border border-gray-600 rounded p-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono"
               autofocus
             />
@@ -202,7 +204,7 @@ const handleLogout = () => {
               type="submit"
               class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold transition-colors"
             >
-              Send
+              發送
             </button>
           </form>
         </div>

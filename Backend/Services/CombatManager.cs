@@ -25,11 +25,11 @@ public class CombatManager : ICombatManager
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         var player = await db.PlayerCharacters.FindAsync(playerId);
-        if (player == null) return "Player not found.";
+        if (player == null) return "找不到玩家。";
 
         // Check if already in combat
         var existingCombat = await db.ActiveCombats.FirstOrDefaultAsync(c => c.PlayerId == playerId);
-        if (existingCombat != null) return "You are already in combat!";
+        if (existingCombat != null) return "你已經在戰鬥中了！";
 
         // Find monster spawn in the same room
         var monsterSpawn = await db.MonsterSpawns
@@ -49,7 +49,7 @@ public class CombatManager : ICombatManager
                 m.Name.ToLower().Contains(targetName.ToLower()));
 
             if (monster == null)
-                return $"No '{targetName}' found here.";
+                return $"這裡找不到 '{targetName}'。";
 
             // Spawn a new instance of this monster
             monsterSpawn = new MonsterSpawn
@@ -87,9 +87,9 @@ public class CombatManager : ICombatManager
 
         await db.SaveChangesAsync();
 
-        var monsterName = monsterSpawn.MonsterTemplate?.Name ?? "Monster";
-        return $"<span class='text-red-400'>⚔️ Combat started with {monsterName}!</span>\n" +
-               $"<span class='text-gray-400'>{monsterName} HP: {monsterSpawn.CurrentHp}/{monsterSpawn.MonsterTemplate?.MaxHp}</span>";
+        var monsterName = monsterSpawn.MonsterTemplate?.Name ?? "怪物";
+        return $"<span class='text-red-400'>⚔️ 開始與 {monsterName} 戰鬥！</span>\n" +
+               $"<span class='text-gray-400'>{monsterName} 生命值：{monsterSpawn.CurrentHp}/{monsterSpawn.MonsterTemplate?.MaxHp}</span>";
     }
 
     public async Task<string> FleeAsync(Guid playerId)
@@ -102,7 +102,7 @@ public class CombatManager : ICombatManager
             .ThenInclude(ms => ms!.MonsterTemplate)
             .FirstOrDefaultAsync(c => c.PlayerId == playerId);
 
-        if (combat == null) return "You are not in combat.";
+        if (combat == null) return "你不在戰鬥中。";
 
         // 50% chance to flee successfully
         if (_random.Next(100) < 50)
@@ -116,10 +116,10 @@ public class CombatManager : ICombatManager
                 if (player.CurrentHp < 0) player.CurrentHp = 0;
                 await db.SaveChangesAsync();
 
-                return $"<span class='text-yellow-400'>You failed to flee!</span>\n" +
-                       $"<span class='text-red-400'>{combat.MonsterSpawn.MonsterTemplate.Name} hits you for {damage} damage!</span>";
+                return $"<span class='text-yellow-400'>逃跑失敗！</span>\n" +
+                       $"<span class='text-red-400'>{combat.MonsterSpawn.MonsterTemplate.Name} 對你造成 {damage} 點傷害！</span>";
             }
-            return "<span class='text-yellow-400'>You failed to flee!</span>";
+            return "<span class='text-yellow-400'>逃跑失敗！</span>";
         }
 
         // Successfully fled
@@ -131,7 +131,7 @@ public class CombatManager : ICombatManager
         db.ActiveCombats.Remove(combat);
         await db.SaveChangesAsync();
 
-        return "<span class='text-green-400'>You successfully fled from combat!</span>";
+        return "<span class='text-green-400'>成功逃離戰鬥！</span>";
     }
 
     public async Task<string> UseSkillAsync(Guid playerId, string skillId)
@@ -140,7 +140,7 @@ public class CombatManager : ICombatManager
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         var player = await db.PlayerCharacters.FindAsync(playerId);
-        if (player == null) return "Player not found.";
+        if (player == null) return "找不到玩家。";
 
         var combat = await db.ActiveCombats
             .Include(c => c.MonsterSpawn)
@@ -148,17 +148,17 @@ public class CombatManager : ICombatManager
             .FirstOrDefaultAsync(c => c.PlayerId == playerId);
 
         var skill = await db.Skills.FirstOrDefaultAsync(s => s.SkillId == skillId.ToLower());
-        if (skill == null) return $"Skill '{skillId}' not found.";
+        if (skill == null) return $"找不到技能 '{skillId}'。";
 
         // Check if player can use this skill
         if (skill.RequiredClass.HasValue && skill.RequiredClass.Value != player.Class)
-            return $"This skill requires {skill.RequiredClass.Value} class.";
+            return $"此技能需要 {GetClassName(skill.RequiredClass.Value)} 職業。";
 
         if (skill.RequiredLevel > player.Level)
-            return $"This skill requires level {skill.RequiredLevel}.";
+            return $"此技能需要等級 {skill.RequiredLevel}。";
 
         if (player.CurrentMp < skill.MpCost)
-            return $"Not enough MP! ({player.CurrentMp}/{skill.MpCost} required)";
+            return $"魔力不足！(目前 {player.CurrentMp}/需要 {skill.MpCost})";
 
         // Deduct MP
         player.CurrentMp -= skill.MpCost;
@@ -186,19 +186,19 @@ public class CombatManager : ICombatManager
                 if (combat == null || combat.MonsterSpawn == null)
                 {
                     player.CurrentMp += skill.MpCost; // Refund MP
-                    return "You need to be in combat to use attack skills!";
+                    return "需要在戰鬥中才能使用攻擊技能！";
                 }
 
                 int damage = Math.Max(1, power - combat.MonsterSpawn.MonsterTemplate!.Defense);
                 combat.MonsterSpawn.CurrentHp -= damage;
 
                 string colorClass = skill.Type == SkillType.Magical ? "text-blue-400" : "text-orange-400";
-                result = $"<span class='{colorClass}'>⚡ You use {skill.Name}! Deals {damage} damage!</span>";
+                result = $"<span class='{colorClass}'>⚡ 施放 {skill.Name}！造成 {damage} 點傷害！</span>";
 
                 if (combat.MonsterSpawn.CurrentHp <= 0)
                 {
                     combat.MonsterSpawn.CurrentHp = 0;
-                    result += $"\n<span class='text-yellow-400'>🎉 {combat.MonsterSpawn.MonsterTemplate.Name} defeated!</span>";
+                    result += $"\n<span class='text-yellow-400'>🎉 打倒了 {combat.MonsterSpawn.MonsterTemplate.Name}！</span>";
                 }
                 break;
 
@@ -208,7 +208,7 @@ public class CombatManager : ICombatManager
                 player.CurrentHp = Math.Min(player.MaxHp, player.CurrentHp + healAmount);
                 int actualHeal = player.CurrentHp - oldHp;
 
-                result = $"<span class='text-green-400'>💚 You use {skill.Name}! Healed for {actualHeal} HP!</span>";
+                result = $"<span class='text-green-400'>💚 施放 {skill.Name}！恢復 {actualHeal} 點生命值！</span>";
                 break;
         }
 
@@ -229,7 +229,7 @@ public class CombatManager : ICombatManager
 
         if (combat == null || combat.Player == null || combat.MonsterSpawn?.MonsterTemplate == null)
         {
-            return new CombatTickResult { CombatEnded = true, Message = "Combat not found." };
+            return new CombatTickResult { CombatEnded = true, Message = "找不到戰鬥。" };
         }
 
         var player = combat.Player;
@@ -248,7 +248,13 @@ public class CombatManager : ICombatManager
         // Player auto-attack
         int playerDamage = CalculatePlayerDamage(player, monster);
         monsterSpawn.CurrentHp -= playerDamage;
-        result.Message = $"<span class='text-orange-400'>You hit {monster.Name} for {playerDamage} damage!</span>";
+        result.Message = GenerateDynamicCombatMessage(
+            player.Name,
+            monster.Name,
+            playerDamage,
+            monsterSpawn.CurrentHp,
+            monster.MaxHp,
+            isPlayerAttacking: true);
         result.MonsterCurrentHp = monsterSpawn.CurrentHp;
 
         // Check monster death
@@ -304,12 +310,12 @@ public class CombatManager : ICombatManager
                 }
             }
 
-            result.Message += $"\n<span class='text-yellow-400'>🎉 {monster.Name} defeated! +{monster.ExpReward} EXP</span>";
+            result.Message += $"\n<span class='text-yellow-400'>🎉 打倒了 {monster.Name}！獲得 {monster.ExpReward} 經驗值</span>";
 
             if (result.Loot.Any())
             {
-                result.Message += "\n<span class='text-cyan-400'>📦 Loot: " +
-                    string.Join(", ", result.Loot.Select(l => $"{l.ItemName} x{l.Quantity}")) + "</span>";
+                result.Message += "\n<span class='text-cyan-400'>📦 掉落物品：" +
+                    string.Join("、", result.Loot.Select(l => $"{l.ItemName} x{l.Quantity}")) + "</span>";
             }
 
             result.CombatEnded = true;
@@ -334,7 +340,18 @@ public class CombatManager : ICombatManager
             player.CurrentHp -= monsterDamage;
             result.PlayerCurrentHp = player.CurrentHp;
 
-            result.Message += $"\n<span class='text-red-400'>{monster.Name} hits you for {monsterDamage} damage!</span>";
+            result.Message += "\n" + GenerateDynamicCombatMessage(
+                monster.Name,
+                player.Name,
+                monsterDamage,
+                player.CurrentHp,
+                player.MaxHp,
+                isPlayerAttacking: false);
+
+            // 加入玩家 HP 狀態警示
+            var playerHpWarning = GetHpStatusDescription(player.CurrentHp, player.MaxHp, isPlayer: true);
+            if (!string.IsNullOrEmpty(playerHpWarning))
+                result.Message += $"\n{playerHpWarning}";
 
             // Check player death
             if (player.CurrentHp <= 0)
@@ -349,7 +366,7 @@ public class CombatManager : ICombatManager
                 player.CurrentRoomId = 1; // Village Square
                 player.Exp = Math.Max(0, player.Exp - monster.ExpReward); // Lose some exp
 
-                result.Message += "\n<span class='text-red-500'>💀 You have died! Respawning at Village Square...</span>";
+                result.Message += "\n<span class='text-red-500'>💀 你陣亡了！在新手村廣場復活...</span>";
 
                 // Clean up combat
                 monsterSpawn.InCombat = false;
@@ -402,6 +419,101 @@ public class CombatManager : ICombatManager
         int baseDamage = player.Stats.Str * 2;
         int damage = Math.Max(1, baseDamage - monster.Defense);
         return (int)(damage * (0.9 + _random.NextDouble() * 0.2));
+    }
+
+    private static string GetClassName(ClassType classType)
+    {
+        return classType switch
+        {
+            ClassType.Warrior => "戰士",
+            ClassType.Mage => "法師",
+            ClassType.Priest => "牧師",
+            _ => classType.ToString()
+        };
+    }
+
+    /// <summary>
+    /// 根據 HP 百分比取得狀態描述
+    /// </summary>
+    private static string GetHpStatusDescription(int currentHp, int maxHp, bool isPlayer)
+    {
+        double hpPercent = (double)currentHp / maxHp * 100;
+
+        if (isPlayer)
+        {
+            return hpPercent switch
+            {
+                >= 75 => "",  // 狀態良好，不需提示
+                >= 50 => "<span class='text-yellow-300'>⚠️ 你略顯疲態...</span>",
+                >= 25 => "<span class='text-orange-400'>⚠️ 你傷痕累累！</span>",
+                >= 10 => "<span class='text-red-400'>💔 你命懸一線！！</span>",
+                _ => "<span class='text-red-500'>☠️ 你瀕臨死亡！！！</span>"
+            };
+        }
+        else
+        {
+            return hpPercent switch
+            {
+                >= 75 => "",  // 怪物狀態良好
+                >= 50 => "它看起來有些疲憊",
+                >= 25 => "它搖搖晃晃",
+                >= 10 => "它快撐不住了！",
+                _ => "它奄奄一息！"
+            };
+        }
+    }
+
+    /// <summary>
+    /// 根據傷害值取得攻擊描述
+    /// </summary>
+    private static string GetDamageDescription(int damage, int targetMaxHp, bool isCritical = false)
+    {
+        double damagePercent = (double)damage / targetMaxHp * 100;
+
+        if (isCritical)
+            return "💥 致命一擊！";
+
+        return damagePercent switch
+        {
+            >= 25 => "💪 重擊！",
+            >= 15 => "👊 有效攻擊！",
+            >= 5 => "",  // 普通攻擊
+            _ => "輕輕擦過..."
+        };
+    }
+
+    /// <summary>
+    /// 生成動態戰鬥訊息
+    /// </summary>
+    private string GenerateDynamicCombatMessage(
+        string attackerName,
+        string defenderName,
+        int damage,
+        int defenderCurrentHp,
+        int defenderMaxHp,
+        bool isPlayerAttacking)
+    {
+        var damageDesc = GetDamageDescription(damage, defenderMaxHp);
+        var hpStatus = GetHpStatusDescription(defenderCurrentHp, defenderMaxHp, !isPlayerAttacking);
+
+        string baseMessage;
+        if (isPlayerAttacking)
+        {
+            baseMessage = !string.IsNullOrEmpty(damageDesc)
+                ? $"<span class='text-orange-400'>{damageDesc} 你對 {defenderName} 造成 {damage} 點傷害！</span>"
+                : $"<span class='text-orange-400'>你對 {defenderName} 造成 {damage} 點傷害！</span>";
+
+            if (!string.IsNullOrEmpty(hpStatus))
+                baseMessage += $" <span class='text-gray-400'>({hpStatus})</span>";
+        }
+        else
+        {
+            baseMessage = !string.IsNullOrEmpty(damageDesc)
+                ? $"<span class='text-red-400'>{damageDesc} {attackerName} 對你造成 {damage} 點傷害！</span>"
+                : $"<span class='text-red-400'>{attackerName} 對你造成 {damage} 點傷害！</span>";
+        }
+
+        return baseMessage;
     }
 
     private async Task<int> GetNextInventorySlot(AppDbContext db, Guid playerId)
@@ -458,7 +570,7 @@ public class CombatManager : ICombatManager
             player.CurrentHp = player.MaxHp;
             player.CurrentMp = player.MaxMp;
 
-            return (true, $"<span class='text-yellow-300'>🌟 LEVEL UP! You are now level {player.Level}!</span>");
+            return (true, $"<span class='text-yellow-300'>🌟 升級了！你現在是等級 {player.Level}！</span>");
         }
 
         return (false, "");
