@@ -1,3 +1,4 @@
+using System.Text.Json;
 using KingOfKings.Backend.Data;
 using KingOfKings.Backend.Models;
 using Microsoft.EntityFrameworkCore;
@@ -107,11 +108,15 @@ public class CombatManager : ICombatManager
         // 50% chance to flee successfully
         if (_random.Next(100) < 50)
         {
-            // Failed to flee - monster gets a free attack
+            // Failed to flee - monster gets a free attack（含裝備防禦加成）
             var player = await db.PlayerCharacters.FindAsync(playerId);
             if (player != null && combat.MonsterSpawn?.MonsterTemplate != null)
             {
-                int damage = Math.Max(1, combat.MonsterSpawn.MonsterTemplate.Attack - (player.Stats.Con / 2));
+                var equipment = await GetEquipmentBonusesAsync(db, playerId);
+                int totalCon = player.Stats.Con + equipment["Con"];
+                int armorDef = equipment["Def"];
+
+                int damage = Math.Max(1, combat.MonsterSpawn.MonsterTemplate.Attack - (totalCon / 2) - armorDef);
                 player.CurrentHp -= damage;
                 if (player.CurrentHp < 0) player.CurrentHp = 0;
                 await db.SaveChangesAsync();
@@ -245,8 +250,8 @@ public class CombatManager : ICombatManager
             MonsterMaxHp = monster.MaxHp
         };
 
-        // Player auto-attack
-        int playerDamage = CalculatePlayerDamage(player, monster);
+        // Player auto-attack（含裝備加成）
+        int playerDamage = await CalculatePlayerDamageAsync(db, player, monster);
         monsterSpawn.CurrentHp -= playerDamage;
         result.Message = GenerateDynamicCombatMessage(
             player.Name,
@@ -334,8 +339,12 @@ public class CombatManager : ICombatManager
         }
         else
         {
-            // Monster counter-attack
-            int monsterDamage = Math.Max(1, monster.Attack - (player.Stats.Con / 2));
+            // Monster counter-attack（含裝備防禦加成）
+            var equipment = await GetEquipmentBonusesAsync(db, player.Id);
+            int totalCon = player.Stats.Con + equipment["Con"];
+            int armorDef = equipment["Def"];
+
+            int monsterDamage = Math.Max(1, monster.Attack - (totalCon / 2) - armorDef);
             monsterDamage = (int)(monsterDamage * (0.9 + _random.NextDouble() * 0.2));
             player.CurrentHp -= monsterDamage;
             result.PlayerCurrentHp = player.CurrentHp;
@@ -414,6 +423,80 @@ public class CombatManager : ICombatManager
             .FirstOrDefaultAsync(c => c.PlayerId == playerId);
     }
 
+    /// <summary>
+    /// 計算玩家裝備的總屬性加成
+    /// </summary>
+    private async Task<Dictionary<string, int>> GetEquipmentBonusesAsync(AppDbContext db, Guid playerId)
+    {
+        var bonuses = new Dictionary<string, int>
+        {
+            { "Atk", 0 }, { "Def", 0 }, { "Str", 0 },
+            { "Dex", 0 }, { "Int", 0 }, { "Wis", 0 }, { "Con", 0 }
+        };
+
+        var equippedItems = await db.InventoryItems
+            .Include(i => i.Item)
+            .Where(i => i.PlayerId == playerId && i.IsEquipped)
+            .ToListAsync();
+
+        foreach (var equipped in equippedItems)
+        {
+            if (equipped.Item == null) continue;
+
+            try
+            {
+                var props = JsonSerializer.Deserialize<Dictionary<string, int>>(
+                    equipped.Item.PropertiesJson,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (props == null) continue;
+
+                foreach (var kvp in props)
+                {
+                    // 標準化屬性名稱
+                    var key = kvp.Key.ToLower() switch
+                    {
+                        "atk" or "attack" => "Atk",
+                        "def" or "defense" => "Def",
+                        "str" or "strength" => "Str",
+                        "dex" or "dexterity" => "Dex",
+                        "int" or "intelligence" => "Int",
+                        "wis" or "wisdom" => "Wis",
+                        "con" or "constitution" => "Con",
+                        _ => kvp.Key
+                    };
+
+                    if (bonuses.ContainsKey(key))
+                        bonuses[key] += kvp.Value;
+                }
+            }
+            catch (JsonException)
+            {
+                // 忽略無效的 JSON
+            }
+        }
+
+        return bonuses;
+    }
+
+    /// <summary>
+    /// 計算玩家攻擊傷害（含裝備加成）
+    /// </summary>
+    private async Task<int> CalculatePlayerDamageAsync(AppDbContext db, PlayerCharacter player, Monster monster)
+    {
+        var equipment = await GetEquipmentBonusesAsync(db, player.Id);
+
+        // 基礎傷害 = (STR + 裝備STR加成) * 2 + 裝備ATK
+        int totalStr = player.Stats.Str + equipment["Str"];
+        int weaponAtk = equipment["Atk"];
+
+        int baseDamage = (totalStr * 2) + weaponAtk;
+        int damage = Math.Max(1, baseDamage - monster.Defense);
+
+        return (int)(damage * (0.9 + _random.NextDouble() * 0.2));
+    }
+
+    // 保留舊方法以向後相容（無裝備加成版本）
     private int CalculatePlayerDamage(PlayerCharacter player, Monster monster)
     {
         int baseDamage = player.Stats.Str * 2;

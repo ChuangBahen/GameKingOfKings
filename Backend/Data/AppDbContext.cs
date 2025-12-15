@@ -26,31 +26,31 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<PlayerCharacter>()
             .OwnsOne(p => p.Stats);
 
-        // Seed initial data (Newbie Village)
+        // Seed initial data (Newbie Village / 新手村)
         modelBuilder.Entity<WorldRoom>().HasData(
-            new WorldRoom { Id = 1, Name = "Village Square", Description = "You are standing in the center of a peaceful village. A fountain bubbles softly nearby.", ExitsJson = "{\"n\":2,\"e\":3,\"s\":4}" },
-            new WorldRoom { Id = 2, Name = "Training Grounds", Description = "Wooden dummies stand in rows here. The sound of striking wood fills the air.", ExitsJson = "{\"s\":1}" },
-            new WorldRoom { Id = 3, Name = "Village Elder's House", Description = "A cozy hut with the smell of herbs.", ExitsJson = "{\"w\":1}" },
-            new WorldRoom { Id = 4, Name = "Village Outskirts", Description = "The edge of the village. Grass sways in the breeze. You can see slimes wandering about.", ExitsJson = "{\"n\":1,\"s\":5}" },
-            new WorldRoom { Id = 5, Name = "Slime Field", Description = "A field crawling with slimes. They seem mostly harmless, but they might attack if provoked.", ExitsJson = "{\"n\":4}" }
+            new WorldRoom { Id = 1, Name = "新手村廣場", Description = "你站在一個寧靜村莊的中心。一座噴泉在旁邊潺潺作響，村民們悠閒地走過。", ExitsJson = "{\"n\":2,\"e\":3,\"s\":4}" },
+            new WorldRoom { Id = 2, Name = "練武場", Description = "木製人偶排列成行。空氣中迴盪著木劍敲擊的聲音，幾位新手正在練習基本招式。", ExitsJson = "{\"s\":1}" },
+            new WorldRoom { Id = 3, Name = "村長的小屋", Description = "一間溫馨的小屋，瀰漫著藥草的香氣。牆上掛滿古老的地圖和冒險者的紀念品。", ExitsJson = "{\"w\":1}" },
+            new WorldRoom { Id = 4, Name = "村莊外圍", Description = "村莊的邊緣地帶，青草隨風搖曳。你可以看到一些史萊姆在附近游蕩，偶爾有野鼠竄過。", ExitsJson = "{\"n\":1,\"s\":5}" },
+            new WorldRoom { Id = 5, Name = "史萊姆平原", Description = "一片爬滿史萊姆的原野。牠們看起來大多無害，但被激怒時可能會攻擊。傳說這裡偶爾會出現巨大的史萊姆王...", ExitsJson = "{\"n\":4}" }
         );
 
-        // Seed monster templates
+        // Seed monster templates (怪物模板)
         modelBuilder.Entity<Monster>().HasData(
-            new Monster { Id = 1, Name = "Slime", MaxHp = 30, CurrentHp = 30, Attack = 5, Defense = 2, ExpReward = 10, LocationId = 4 },
-            new Monster { Id = 2, Name = "Rat", MaxHp = 20, CurrentHp = 20, Attack = 8, Defense = 1, ExpReward = 8, LocationId = 4 },
-            new Monster { Id = 3, Name = "King Slime", MaxHp = 150, CurrentHp = 150, Attack = 15, Defense = 5, ExpReward = 100, LocationId = 5 }
+            new Monster { Id = 1, Name = "史萊姆", MaxHp = 30, CurrentHp = 30, Attack = 5, Defense = 2, ExpReward = 10, LocationId = 4 },
+            new Monster { Id = 2, Name = "野鼠", MaxHp = 20, CurrentHp = 20, Attack = 8, Defense = 1, ExpReward = 8, LocationId = 4 },
+            new Monster { Id = 3, Name = "史萊姆王", MaxHp = 100, CurrentHp = 100, Attack = 12, Defense = 3, ExpReward = 80, LocationId = 5 }
         );
 
-        // Seed items
+        // Seed items (物品)
         modelBuilder.Entity<Item>().HasData(
-            new Item { Id = 1, Name = "Slime Gel", Type = ItemType.Quest, PropertiesJson = "{}" },
-            new Item { Id = 2, Name = "Rat Tail", Type = ItemType.Quest, PropertiesJson = "{}" },
-            new Item { Id = 3, Name = "Novice Ring", Type = ItemType.Armor, PropertiesJson = "{\"Str\":1,\"Int\":1,\"Wis\":1,\"Dex\":1,\"Con\":1}" },
-            new Item { Id = 4, Name = "Rusty Sword", Type = ItemType.Weapon, PropertiesJson = "{\"Atk\":5}" },
-            new Item { Id = 5, Name = "Wooden Staff", Type = ItemType.Weapon, PropertiesJson = "{\"Atk\":3,\"Int\":2}" },
-            new Item { Id = 6, Name = "Health Potion", Type = ItemType.Consumable, PropertiesJson = "{\"HealHp\":30}" },
-            new Item { Id = 7, Name = "Mana Potion", Type = ItemType.Consumable, PropertiesJson = "{\"HealMp\":20}" }
+            new Item { Id = 1, Name = "史萊姆凝膠", Type = ItemType.Quest, PropertiesJson = "{}" },
+            new Item { Id = 2, Name = "野鼠尾巴", Type = ItemType.Quest, PropertiesJson = "{}" },
+            new Item { Id = 3, Name = "新手之戒", Type = ItemType.Armor, PropertiesJson = "{\"Str\":1,\"Int\":1,\"Wis\":1,\"Dex\":1,\"Con\":1}" },
+            new Item { Id = 4, Name = "生鏽的劍", Type = ItemType.Weapon, PropertiesJson = "{\"Atk\":5}" },
+            new Item { Id = 5, Name = "木杖", Type = ItemType.Weapon, PropertiesJson = "{\"Atk\":3,\"Int\":2}" },
+            new Item { Id = 6, Name = "生命藥水", Type = ItemType.Consumable, PropertiesJson = "{\"HealHp\":30}" },
+            new Item { Id = 7, Name = "魔力藥水", Type = ItemType.Consumable, PropertiesJson = "{\"HealMp\":20}" }
         );
 
         // Seed skills
@@ -69,13 +69,14 @@ public class AppDbContext : DbContext
             new Skill { Id = 9, SkillId = "smite", Name = "Smite", Description = "Holy damage that scales with WIS.", Type = SkillType.Magical, TargetType = SkillTargetType.SingleEnemy, MpCost = 12, Cooldown = 4, BasePower = 20, ScalingStat = "WIS", ScalingMultiplier = 1.8, RequiredClass = ClassType.Priest, RequiredLevel = 1 }
         );
 
-        // Seed loot table
+        // Seed loot table (掉落表)
         modelBuilder.Entity<LootTableEntry>().HasData(
-            new LootTableEntry { Id = 1, MonsterId = 1, ItemId = 1, DropRate = 50, MinQuantity = 1, MaxQuantity = 2 }, // Slime -> Slime Gel
-            new LootTableEntry { Id = 2, MonsterId = 2, ItemId = 2, DropRate = 60, MinQuantity = 1, MaxQuantity = 1 }, // Rat -> Rat Tail
-            new LootTableEntry { Id = 3, MonsterId = 3, ItemId = 3, DropRate = 100, MinQuantity = 1, MaxQuantity = 1 }, // King Slime -> Novice Ring
-            new LootTableEntry { Id = 4, MonsterId = 1, ItemId = 6, DropRate = 10, MinQuantity = 1, MaxQuantity = 1 }, // Slime -> Health Potion
-            new LootTableEntry { Id = 5, MonsterId = 2, ItemId = 6, DropRate = 15, MinQuantity = 1, MaxQuantity = 1 }  // Rat -> Health Potion
+            new LootTableEntry { Id = 1, MonsterId = 1, ItemId = 1, DropRate = 50, MinQuantity = 1, MaxQuantity = 2 }, // 史萊姆 -> 史萊姆凝膠
+            new LootTableEntry { Id = 2, MonsterId = 2, ItemId = 2, DropRate = 60, MinQuantity = 1, MaxQuantity = 1 }, // 野鼠 -> 野鼠尾巴
+            new LootTableEntry { Id = 3, MonsterId = 3, ItemId = 3, DropRate = 100, MinQuantity = 1, MaxQuantity = 1 }, // 史萊姆王 -> 新手之戒
+            new LootTableEntry { Id = 4, MonsterId = 1, ItemId = 6, DropRate = 15, MinQuantity = 1, MaxQuantity = 1 }, // 史萊姆 -> 生命藥水 (10%->15%)
+            new LootTableEntry { Id = 5, MonsterId = 2, ItemId = 6, DropRate = 15, MinQuantity = 1, MaxQuantity = 1 }, // 野鼠 -> 生命藥水
+            new LootTableEntry { Id = 6, MonsterId = 3, ItemId = 7, DropRate = 30, MinQuantity = 1, MaxQuantity = 2 }  // 史萊姆王 -> 魔力藥水 (新增)
         );
     }
 }
