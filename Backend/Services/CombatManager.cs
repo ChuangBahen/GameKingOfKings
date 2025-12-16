@@ -33,21 +33,22 @@ public class CombatManager : ICombatManager
         if (existingCombat != null) return "你已經在戰鬥中了！";
 
         // Find monster spawn in the same room
+        // Note: Use CurrentHp > 0 instead of IsAlive (computed property can't be translated by EF Core)
         var monsterSpawn = await db.MonsterSpawns
             .Include(ms => ms.MonsterTemplate)
             .FirstOrDefaultAsync(ms =>
                 ms.RoomId == player.CurrentRoomId &&
-                ms.IsAlive &&
+                ms.CurrentHp > 0 &&
                 !ms.InCombat &&
                 ms.MonsterTemplate != null &&
-                ms.MonsterTemplate.Name.ToLower().Contains(targetName.ToLower()));
+                EF.Functions.Like(ms.MonsterTemplate.Name, "%" + targetName + "%"));
 
         if (monsterSpawn == null)
         {
             // Try to find by exact monster template name
             var monster = await db.Monsters.FirstOrDefaultAsync(m =>
                 m.LocationId == player.CurrentRoomId &&
-                m.Name.ToLower().Contains(targetName.ToLower()));
+                EF.Functions.Like(m.Name, "%" + targetName + "%"));
 
             if (monster == null)
                 return $"這裡找不到 '{targetName}'。";

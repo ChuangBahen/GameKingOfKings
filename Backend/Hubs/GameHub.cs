@@ -28,8 +28,9 @@ public class GameHub : Hub
     /// </summary>
     private Guid GetAuthenticatedUserId()
     {
-        var userIdClaim = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                       ?? Context.User?.FindFirst("UserId")?.Value;
+        // 優先使用自訂的 UserId claim
+        var userIdClaim = Context.User?.FindFirst("UserId")?.Value
+                       ?? Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         if (Guid.TryParse(userIdClaim, out var userId))
         {
@@ -55,13 +56,18 @@ public class GameHub : Hub
 
     public async Task SendCommand(string command)
     {
+        Console.WriteLine($"[GameHub] SendCommand received: '{command}'");
+
         if (!Context.Items.TryGetValue("PlayerId", out var idObj) || idObj is not Guid playerId)
         {
+            Console.WriteLine("[GameHub] SendCommand - PlayerId not found in Context.Items");
             await Clients.Caller.SendAsync("ReceiveMessage", "System", "請先加入遊戲。");
             return;
         }
 
+        Console.WriteLine($"[GameHub] Processing command for player: {playerId}");
         var result = await _gameEngine.ProcessCommandAsync(playerId, command);
+        Console.WriteLine($"[GameHub] Command result: {result?.Substring(0, Math.Min(100, result?.Length ?? 0))}...");
         await Clients.Caller.SendAsync("ReceiveMessage", "Game", result);
     }
 
@@ -72,6 +78,17 @@ public class GameHub : Hub
     {
         var userId = GetAuthenticatedUserId();
         var username = GetAuthenticatedUsername();
+
+        // 除錯：輸出認證資訊
+        Console.WriteLine($"[GameHub] JoinGame - UserId: {userId}, Username: {username}");
+        Console.WriteLine($"[GameHub] User IsAuthenticated: {Context.User?.Identity?.IsAuthenticated}");
+        if (Context.User != null)
+        {
+            foreach (var claim in Context.User.Claims)
+            {
+                Console.WriteLine($"[GameHub] Claim: {claim.Type} = {claim.Value}");
+            }
+        }
 
         if (userId == Guid.Empty || string.IsNullOrEmpty(username))
         {

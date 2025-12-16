@@ -193,14 +193,34 @@ public class GameEngine : IGameEngine
             _ => player.Class.ToString()
         };
 
+        // 計算裝備加成
+        var eq = await GetEquipmentBonusesAsync(db, player.Id);
+        int totalStr = player.Stats.Str + eq["Str"];
+        int totalDex = player.Stats.Dex + eq["Dex"];
+        int totalCon = player.Stats.Con + eq["Con"];
+        int totalInt = player.Stats.Int + eq["Int"];
+        int totalWis = player.Stats.Wis + eq["Wis"];
+        int totalAtk = eq["Atk"];
+        int totalDef = eq["Def"];
+
+        // 格式化屬性顯示（有加成時顯示綠色 +N）
+        string FormatStat(string name, int baseVal, int bonus) =>
+            bonus > 0 ? $"{name}: {baseVal}<span class='text-green-400'>+{bonus}</span>" : $"{name}: {baseVal}";
+
         var result = $@"<div class='text-yellow-400 font-bold'>═══ {player.Name} ═══</div>
 <div>職業: <span class='text-cyan-400'>{className}</span> | 等級: <span class='text-green-400'>{player.Level}</span></div>
 <div>經驗值: <span class='text-yellow-300'>{player.Exp}/{player.Level * 100}</span></div>
 <div class='mt-2'>生命值: <span class='text-red-400'>{player.CurrentHp}/{player.MaxHp}</span></div>
 <div>魔力值: <span class='text-blue-400'>{player.CurrentMp}/{player.MaxMp}</span></div>
 <div class='mt-2 text-gray-300'>═══ 屬性 ═══</div>
-<div>力量: {player.Stats.Str} | 敏捷: {player.Stats.Dex} | 體質: {player.Stats.Con}</div>
-<div>智力: {player.Stats.Int} | 智慧: {player.Stats.Wis}</div>";
+<div>{FormatStat("力量", player.Stats.Str, eq["Str"])} | {FormatStat("敏捷", player.Stats.Dex, eq["Dex"])} | {FormatStat("體質", player.Stats.Con, eq["Con"])}</div>
+<div>{FormatStat("智力", player.Stats.Int, eq["Int"])} | {FormatStat("智慧", player.Stats.Wis, eq["Wis"])}</div>";
+
+        // 顯示裝備攻防加成
+        if (totalAtk > 0 || totalDef > 0)
+        {
+            result += $"\n<div class='text-orange-400'>攻擊: +{totalAtk} | 防禦: +{totalDef}</div>";
+        }
 
         if (inCombat)
         {
@@ -277,11 +297,24 @@ public class GameEngine : IGameEngine
         if (inventoryItem?.Item == null)
             return $"背包中找不到 '{itemName}'。";
 
-        if (inventoryItem.Item.Type != ItemType.Weapon && inventoryItem.Item.Type != ItemType.Armor)
-            return "只有武器和防具可以裝備。";
+        if (inventoryItem.Item.Type != ItemType.Weapon &&
+            inventoryItem.Item.Type != ItemType.Armor &&
+            inventoryItem.Item.Type != ItemType.Accessory)
+            return "只有武器、防具和飾品可以裝備。";
 
-        // Determine slot
-        var slot = inventoryItem.Item.Type == ItemType.Weapon ? EquipmentSlot.Weapon : EquipmentSlot.Body;
+        // Determine slot based on item type and name
+        // 使用名稱判斷飾品（向後相容舊資料）
+        var isAccessory = inventoryItem.Item.Type == ItemType.Accessory ||
+                          inventoryItem.Item.Name.Contains("戒") ||
+                          inventoryItem.Item.Name.Contains("項鍊") ||
+                          inventoryItem.Item.Name.Contains("耳環");
+
+        var slot = inventoryItem.Item.Type switch
+        {
+            ItemType.Weapon => EquipmentSlot.Weapon,
+            _ when isAccessory => EquipmentSlot.Accessory,
+            _ => EquipmentSlot.Body  // Armor
+        };
 
         // Check if something is already equipped in that slot
         var currentEquipped = await db.InventoryItems
@@ -442,5 +475,61 @@ public class GameEngine : IGameEngine
         }
 
         await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// 計算玩家裝備的總屬性加成
+    /// </summary>
+    private async Task<Dictionary<string, int>> GetEquipmentBonusesAsync(AppDbContext db, Guid playerId)
+    {
+        var bonuses = new Dictionary<string, int>
+        {
+            { "Atk", 0 }, { "Def", 0 }, { "Str", 0 },
+            { "Dex", 0 }, { "Int", 0 }, { "Wis", 0 }, { "Con", 0 }
+        };
+
+        var equippedItems = await db.InventoryItems
+            .Include(i => i.Item)
+            .Where(i => i.PlayerId == playerId && i.IsEquipped)
+            .ToListAsync();
+
+        foreach (var equipped in equippedItems)
+        {
+            if (equipped.Item == null) continue;
+
+            try
+            {
+                var props = JsonSerializer.Deserialize<Dictionary<string, int>>(
+                    equipped.Item.PropertiesJson,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (props == null) continue;
+
+                foreach (var kvp in props)
+                {
+                    // 標準化屬性名稱
+                    var key = kvp.Key.ToLower() switch
+                    {
+                        "atk" or "attack" => "Atk",
+                        "def" or "defense" => "Def",
+                        "str" or "strength" => "Str",
+                        "dex" or "dexterity" => "Dex",
+                        "int" or "intelligence" => "Int",
+                        "wis" or "wisdom" => "Wis",
+                        "con" or "constitution" => "Con",
+                        _ => kvp.Key
+                    };
+
+                    if (bonuses.ContainsKey(key))
+                        bonuses[key] += kvp.Value;
+                }
+            }
+            catch (JsonException)
+            {
+                // 忽略無效的 JSON
+            }
+        }
+
+        return bonuses;
     }
 }

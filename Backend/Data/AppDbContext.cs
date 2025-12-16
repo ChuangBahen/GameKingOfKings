@@ -46,7 +46,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Item>().HasData(
             new Item { Id = 1, Name = "史萊姆凝膠", Type = ItemType.Quest, PropertiesJson = "{}" },
             new Item { Id = 2, Name = "野鼠尾巴", Type = ItemType.Quest, PropertiesJson = "{}" },
-            new Item { Id = 3, Name = "新手之戒", Type = ItemType.Armor, PropertiesJson = "{\"Str\":1,\"Int\":1,\"Wis\":1,\"Dex\":1,\"Con\":1}" },
+            new Item { Id = 3, Name = "新手之戒", Type = ItemType.Accessory, PropertiesJson = "{\"Str\":1,\"Int\":1,\"Wis\":1,\"Dex\":1,\"Con\":1}" },
             new Item { Id = 4, Name = "生鏽的劍", Type = ItemType.Weapon, PropertiesJson = "{\"Atk\":5}" },
             new Item { Id = 5, Name = "木杖", Type = ItemType.Weapon, PropertiesJson = "{\"Atk\":3,\"Int\":2}" },
             new Item { Id = 6, Name = "生命藥水", Type = ItemType.Consumable, PropertiesJson = "{\"HealHp\":30}" },

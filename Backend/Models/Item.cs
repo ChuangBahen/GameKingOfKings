@@ -5,7 +5,8 @@ public enum ItemType
     Weapon,
     Armor,
     Consumable,
-    Quest
+    Quest,
+    Accessory   // 飾品
 }
 
 public class Item
