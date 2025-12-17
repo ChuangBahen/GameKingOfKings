@@ -13,3 +13,7 @@ Frontend/dist
 Frontend/dist.zip
 /.serena
 /.vscode
+
+# SQLite WAL files
+*.db-wal
+*.db-shm
