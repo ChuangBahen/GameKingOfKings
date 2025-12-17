@@ -9,6 +9,47 @@ description: SDD 遊戲開發流程 - Agent 與 SpecKit 強制整合版，每個
 
 ---
 
+## 🚫🚫🚫 絕對禁止（最高優先級）🚫🚫🚫
+
+> ⛔ **在 Step 6 之前，絕對禁止以下行為：**
+>
+> 1. ❌ **禁止撰寫任何程式碼**（包括 Model、Service、Controller 等）
+> 2. ❌ **禁止修改任何現有程式碼檔案**
+> 3. ❌ **禁止建立資料庫遷移**
+> 4. ❌ **禁止執行 dotnet build/run**
+> 5. ❌ **禁止跳過任何步驟**
+>
+> **違反處理：如果發現自己想要寫程式碼，立即停止並回到當前應該執行的步驟**
+
+---
+
+## ✅ 必須遵守的執行流程
+
+### 每個步驟的強制動作：
+
+1. **宣告當前步驟** - 輸出「🔄 正在執行 Step X: [名稱]」
+2. **使用 SlashCommand 工具執行對應的 `/speckit.*` 指令**（Step 1 除外）
+3. **確認檔案已建立** - 使用 Read 工具驗證
+4. **輸出完成訊息** - 包含產出檔案清單
+5. **等待用戶輸入「繼續」** - 不得自動進入下一步
+
+### 流程狀態追蹤表（每次執行時更新）：
+
+```
+| Step | 名稱 | 狀態 | 產出檔案 | SpecKit 指令 |
+|------|------|------|---------|-------------|
+| 0 | Constitution | ⏳ | | /speckit.constitution |
+| 1 | Design | ⏳ | | (手動) |
+| 2 | Specify | ⏳ | | /speckit.specify |
+| 3 | Clarify | ⏳ | | /speckit.clarify |
+| 4 | Plan | ⏳ | | /speckit.plan |
+| 5 | Tasks | ⏳ | | /speckit.tasks |
+| 6 | Implement | ⏳ | | /speckit.implement |
+| 7 | Analyze | ⏳ | | /speckit.analyze |
+```
+
+---
+
 ## 🚨 強制執行規則
 
 1. **每個步驟都必須同時**：
@@ -17,6 +58,7 @@ description: SDD 遊戲開發流程 - Agent 與 SpecKit 強制整合版，每個
 2. **必須產出檔案** - 每個步驟都有必須建立的檔案
 3. **必須按順序執行** - 不可跳過
 4. **必須等待確認** - 每步完成後等待「繼續」
+5. **必須使用 SlashCommand 工具** - 呼叫 `/speckit.*` 指令時必須使用 SlashCommand 工具
 
 ---
 
@@ -746,10 +788,28 @@ dotnet test
 
 功能描述: **$ARGUMENTS**
 
-我將從 Step 0 開始，每個步驟都會：
-1. 切換到對應的 Agent 角色
-2. 執行對應的 SpecKit 指令
-3. 確認產出檔案
-4. 等待你確認後繼續
+---
 
-**準備好了嗎？讓我們開始！**
+### ⚠️ 執行前自我檢查
+
+在開始之前，我必須確認：
+- [ ] 我理解在 Step 6 之前**絕對不能寫任何程式碼**
+- [ ] 我會使用 SlashCommand 工具執行每個 `/speckit.*` 指令
+- [ ] 我會在每個步驟完成後等待用戶確認才繼續
+
+---
+
+### 🚀 立即開始 Step 0
+
+我現在將：
+1. 輸出「🔄 正在執行 Step 0: Constitution」
+2. 檢查 `.specify/memory/constitution.md` 是否存在
+3. 如不存在，使用 **SlashCommand 工具**執行 `/speckit.constitution`
+4. 確認檔案已建立
+5. 輸出完成訊息並等待你輸入「繼續」
+
+**⛔ 重要提醒：我不會在 Step 6 之前撰寫任何程式碼！**
+
+---
+
+🔄 **正在執行 Step 0: Constitution...**

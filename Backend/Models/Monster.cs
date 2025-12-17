@@ -52,5 +52,23 @@ namespace KingOfKings.Backend.Models
         /// 怪物所在房間的 ID。
         /// </summary>
         public int LocationId { get; set; }
+
+        /// <summary>
+        /// The level of the monster.
+        /// 怪物的等級。
+        /// </summary>
+        public int Level { get; set; } = 1;
+
+        /// <summary>
+        /// Whether this monster is a boss.
+        /// 是否為 Boss 怪物。
+        /// </summary>
+        public bool IsBoss { get; set; } = false;
+
+        /// <summary>
+        /// Description or flavor text for the monster.
+        /// 怪物的描述或風味文字。
+        /// </summary>
+        public string Description { get; set; } = string.Empty;
     }
 }

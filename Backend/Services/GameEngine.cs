@@ -101,12 +101,16 @@ public class GameEngine : IGameEngine
 
         var result = $"<div class='text-yellow-400 font-bold'>{room.Name}</div><div>{room.Description}</div>";
 
-        // 顯示房間中的怪物
+        // 顯示房間中的怪物（含等級和 Boss 標記）
         var monsters = await db.Monsters.Where(m => m.LocationId == player.CurrentRoomId).ToListAsync();
         if (monsters.Any())
         {
+            var monsterList = monsters.Select(m =>
+                m.IsBoss
+                    ? $"<span class='text-yellow-400'>[Boss Lv.{m.Level}] {m.Name}</span>"
+                    : $"[Lv.{m.Level}] {m.Name}");
             result += "\n<div class='text-red-300 mt-2'>這裡的怪物：" +
-                string.Join("、", monsters.Select(m => m.Name)) + "</div>";
+                string.Join("、", monsterList) + "</div>";
         }
 
         // 顯示出口
@@ -301,6 +305,31 @@ public class GameEngine : IGameEngine
             inventoryItem.Item.Type != ItemType.Armor &&
             inventoryItem.Item.Type != ItemType.Accessory)
             return "只有武器、防具和飾品可以裝備。";
+
+        // 檢查等級需求
+        var player = await db.PlayerCharacters.FindAsync(playerId);
+        if (player == null)
+            return "找不到玩家。";
+
+        if (player.Level < inventoryItem.Item.RequiredLevel)
+            return $"<span class='text-red-400'>你的等級不足！需要 {inventoryItem.Item.RequiredLevel} 級才能裝備 {inventoryItem.Item.Name}。</span>";
+
+        // 檢查職業需求
+        if (inventoryItem.Item.RequiredClass.HasValue)
+        {
+            var requiredClass = (ClassType)inventoryItem.Item.RequiredClass.Value;
+            if (player.Class != requiredClass)
+            {
+                var className = requiredClass switch
+                {
+                    ClassType.Warrior => "戰士",
+                    ClassType.Mage => "法師",
+                    ClassType.Priest => "牧師",
+                    _ => "未知"
+                };
+                return $"<span class='text-red-400'>只有{className}可以裝備 {inventoryItem.Item.Name}。</span>";
+            }
+        }
 
         // Determine slot based on item type and name
         // 使用名稱判斷飾品（向後相容舊資料）
