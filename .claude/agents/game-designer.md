@@ -160,6 +160,28 @@ cat .claude/shared/game-design-doc.md
 ### Phase 3: 優化版
 - 優化項目：
 
+## 給 SpecKit 的輸入摘要
+
+> ⚠️ 重要：此區塊的內容將直接用於 `/speckit.specify` 指令
+
+[用自然語言描述這個功能，包含：]
+
+**功能描述**：
+[一段話描述這個功能的目的和價值]
+
+**主要操作**：
+1. [操作1] - [描述]
+2. [操作2] - [描述]
+3. [操作3] - [描述]
+
+**數值限制**：
+- [參數1]: [值]
+- [參數2]: [值]
+
+**重要邊界情況**：
+- [情況1] → [處理方式]
+- [情況2] → [處理方式]
+
 ## 參考資料
 - 類似遊戲：[遊戲名稱] 的 [功能] 設計
 - 設計靈感：
@@ -249,8 +271,14 @@ cat .claude/shared/game-design-doc.md
 
 ### 完成工作後
 1. 將設計存入 `.claude/shared/designs/[feature]-design.md`
-2. 更新 `.claude/shared/context.md`
-3. **通知 spec-writer 可以開始撰寫規格**
+2. **確保「給 SpecKit 的輸入摘要」區塊已填寫完整**
+3. 更新 `.claude/shared/context.md`
+4. 通知：設計完成，可執行 `/speckit.specify`
+
+### 與 SpecKit 的整合
+- game-designer 是 SDD 流程中**唯一不使用 SpecKit 指令**的步驟
+- 設計文件的「給 SpecKit 的輸入摘要」會作為 `/speckit.specify` 的輸入
+- 確保摘要內容足夠詳細，讓 SpecKit 能產出完整的規格
 
 ## 輸出原則
 
