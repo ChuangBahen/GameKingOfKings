@@ -14,14 +14,18 @@ const props = defineProps<{
 
 const playerStore = usePlayerStore();
 
-// 過濾戰鬥相關訊息 (支援中英文)
+// Use store's combatMessages if available, otherwise fallback to props filtering
 const combatLog = computed(() => {
+  if (playerStore.combatMessages.length > 0) {
+    return playerStore.combatMessages.slice(-15) // 保留最近 15 條戰鬥訊息
+  }
+  // Fallback: 過濾戰鬥相關訊息 (支援中英文)
   return props.messages
     .filter(m => m.user === 'Combat' ||
       m.content.includes('Combat') || m.content.includes('戰鬥') ||
       m.content.includes('damage') || m.content.includes('傷害') ||
       m.content.includes('⚔️'))
-    .slice(-10); // 保留最近 10 條戰鬥訊息
+    .slice(-15);
 });
 
 // Get monster HP percentage

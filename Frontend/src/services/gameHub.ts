@@ -1,4 +1,5 @@
 import * as signalR from "@microsoft/signalr";
+import type { PlayerFullStats, InventoryData, MapData, SkillsData, MessageType } from '../types/game';
 
 // The URL should match the backend Hub URL
 // URL 應與後端 Hub URL 相符
@@ -11,10 +12,40 @@ export interface StatsUpdate {
     monsterMaxHp?: number;
 }
 
+export interface ClassOption {
+    type: number;
+    name: string;
+    description: string;
+    stats: string;
+}
+
+export interface ClassSelectionData {
+    classes?: ClassOption[];
+    Classes?: ClassOption[];  // 後端使用大寫 C
+}
+
+export interface CharacterCreatedData {
+    className: string;
+}
+
+// Extended message with type classification
+export interface TypedMessage {
+    user: string;
+    message: string;
+    messageType: MessageType;
+}
+
 class GameHubService {
     private connection: signalR.HubConnection | null = null;
     private messageCallbacks: ((user: string, message: string) => void)[] = [];
+    private typedMessageCallbacks: ((data: TypedMessage) => void)[] = [];
     private statsCallbacks: ((stats: StatsUpdate) => void)[] = [];
+    private classSelectionCallbacks: ((data: ClassSelectionData) => void)[] = [];
+    private characterCreatedCallbacks: ((data: CharacterCreatedData) => void)[] = [];
+    private fullStatsCallbacks: ((data: PlayerFullStats) => void)[] = [];
+    private inventoryCallbacks: ((data: InventoryData) => void)[] = [];
+    private mapCallbacks: ((data: MapData) => void)[] = [];
+    private skillsCallbacks: ((data: SkillsData) => void)[] = [];
 
     /**
      * 初始化 SignalR 連線（帶 JWT Token）
@@ -29,12 +60,36 @@ class GameHubService {
             .withAutomaticReconnect()
             .build();
 
-        // 重新註冊已有的 callbacks
-        this.messageCallbacks.forEach(cb => {
-            this.connection?.on("ReceiveMessage", cb);
+        // 註冊合併的 message handler（避免重複調用）
+        // 後端 ReceiveMessage 發送 3 參數：user, message, messageType
+        this.connection.on("ReceiveMessage", (user: string, message: string, messageType?: string) => {
+            // 調用所有已註冊的 typed message callbacks
+            this.typedMessageCallbacks.forEach(cb => {
+                cb({ user, message, messageType: (messageType as import('../types/game').MessageType) || 'general' });
+            });
         });
+
+        // 其他事件 handlers
         this.statsCallbacks.forEach(cb => {
             this.connection?.on("UpdateStats", cb);
+        });
+        this.classSelectionCallbacks.forEach(cb => {
+            this.connection?.on("RequireClassSelection", cb);
+        });
+        this.characterCreatedCallbacks.forEach(cb => {
+            this.connection?.on("CharacterCreated", cb);
+        });
+        this.fullStatsCallbacks.forEach(cb => {
+            this.connection?.on("FullStatsUpdate", cb);
+        });
+        this.inventoryCallbacks.forEach(cb => {
+            this.connection?.on("InventoryUpdate", cb);
+        });
+        this.mapCallbacks.forEach(cb => {
+            this.connection?.on("MapUpdate", cb);
+        });
+        this.skillsCallbacks.forEach(cb => {
+            this.connection?.on("SkillsUpdate", cb);
         });
     }
 
@@ -89,6 +144,65 @@ class GameHubService {
     public onUpdateStats(callback: (stats: StatsUpdate) => void) {
         this.statsCallbacks.push(callback);
         this.connection?.on("UpdateStats", callback);
+    }
+
+    // Listen for class selection requirement
+    // 監聽職業選擇要求
+    public onRequireClassSelection(callback: (data: ClassSelectionData) => void) {
+        this.classSelectionCallbacks.push(callback);
+        this.connection?.on("RequireClassSelection", callback);
+    }
+
+    // Listen for character created event
+    // 監聽角色建立事件
+    public onCharacterCreated(callback: (data: CharacterCreatedData) => void) {
+        this.characterCreatedCallbacks.push(callback);
+        this.connection?.on("CharacterCreated", callback);
+    }
+
+    // Listen for typed messages (with message type classification)
+    // 監聽類型化訊息（帶訊息分類）
+    public onReceiveTypedMessage(callback: (data: TypedMessage) => void) {
+        this.typedMessageCallbacks.push(callback);
+        this.connection?.on("ReceiveTypedMessage", callback);
+    }
+
+    // Listen for full stats update
+    // 監聽完整狀態更新
+    public onFullStatsUpdate(callback: (data: PlayerFullStats) => void) {
+        this.fullStatsCallbacks.push(callback);
+        this.connection?.on("FullStatsUpdate", callback);
+    }
+
+    // Listen for inventory update
+    // 監聽背包更新
+    public onInventoryUpdate(callback: (data: InventoryData) => void) {
+        this.inventoryCallbacks.push(callback);
+        this.connection?.on("InventoryUpdate", callback);
+    }
+
+    // Listen for map update
+    // 監聽地圖更新
+    public onMapUpdate(callback: (data: MapData) => void) {
+        this.mapCallbacks.push(callback);
+        this.connection?.on("MapUpdate", callback);
+    }
+
+    // Listen for skills update
+    // 監聽技能更新
+    public onSkillsUpdate(callback: (data: SkillsData) => void) {
+        this.skillsCallbacks.push(callback);
+        this.connection?.on("SkillsUpdate", callback);
+    }
+
+    // Create character with selected class
+    // 建立角色（選擇職業）
+    public async createCharacter(classType: number) {
+        try {
+            await this.connection?.invoke("CreateCharacter", classType);
+        } catch (err) {
+            console.error("CreateCharacter Error: ", err);
+        }
     }
 
     // Send a message (chat)

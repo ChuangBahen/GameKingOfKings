@@ -8,7 +8,9 @@ import StatusPanel from './components/StatusPanel.vue';
 import CombatView from './components/CombatView.vue';
 import InventoryPanel from './components/InventoryPanel.vue';
 import MiniMap from './components/MiniMap.vue';
-import { gameHub, type StatsUpdate } from './services/gameHub';
+import SkillPanel from './components/SkillPanel.vue';
+import { gameHub, type StatsUpdate, type ClassOption, type ClassSelectionData, type TypedMessage } from './services/gameHub';
+import type { PlayerFullStats, InventoryData, MapData, SkillsData } from './types/game';
 
 const authStore = useAuthStore();
 const playerStore = usePlayerStore();
@@ -18,6 +20,12 @@ const historyIndex = ref(-1);
 const messages = ref<{ user: string; content: string; timestamp: Date }[]>([]);
 const inputRef = ref<HTMLInputElement | null>(null);
 
+// 職業選擇相關
+const showClassSelection = ref(false);
+const classOptions = ref<ClassOption[]>([]);
+const selectedClass = ref<number | null>(null);
+const isCreatingCharacter = ref(false);
+
 const connectSignalR = async () => {
   if (!authStore.isAuthenticated) return;
 
@@ -26,16 +34,50 @@ const connectSignalR = async () => {
     console.log('SignalR Connected');
     playerStore.setConnected(true);
 
-    // Register message handler
-    gameHub.onReceiveMessage((user: string, message: string) => {
+    // Register stats update handler
+    gameHub.onUpdateStats((stats: StatsUpdate) => {
+      if (stats.currentHp !== undefined) {
+        playerStore.updateHp(stats.currentHp, stats.maxHp);
+      }
+      if (stats.monsterHp !== undefined && stats.monsterMaxHp !== undefined) {
+        playerStore.updateMonsterHp(stats.monsterHp, stats.monsterMaxHp);
+      }
+    });
+
+    // Register class selection handler
+    gameHub.onRequireClassSelection((data: ClassSelectionData) => {
+      console.log('Class selection required:', data);
+      // 後端使用大寫 Classes，前端介面使用小寫 classes
+      const classes = data.classes || data.Classes;
+      if (classes && classes.length > 0) {
+        classOptions.value = classes;
+        showClassSelection.value = true;
+      } else {
+        console.error('Invalid class selection data:', data);
+      }
+    });
+
+    // Register character created handler
+    gameHub.onCharacterCreated(() => {
+      console.log('Character created');
+      showClassSelection.value = false;
+      isCreatingCharacter.value = false;
+      selectedClass.value = null;
+    });
+
+    // Register typed message handler (new - with message type)
+    gameHub.onReceiveTypedMessage((data: TypedMessage) => {
+      playerStore.addMessage(data.user, data.message, data.messageType);
+
+      // Also add to legacy messages array for backward compatibility
       messages.value.push({
-        user,
-        content: message,
+        user: data.user,
+        content: data.message,
         timestamp: new Date()
       });
 
       // Parse combat-related messages
-      parseCombatMessage(user, message);
+      parseCombatMessage(data.user, data.message);
 
       // Scroll to bottom after message
       nextTick(() => {
@@ -46,14 +88,28 @@ const connectSignalR = async () => {
       });
     });
 
-    // Register stats update handler
-    gameHub.onUpdateStats((stats: StatsUpdate) => {
-      if (stats.currentHp !== undefined) {
-        playerStore.updateHp(stats.currentHp, stats.maxHp);
-      }
-      if (stats.monsterHp !== undefined && stats.monsterMaxHp !== undefined) {
-        playerStore.updateMonsterHp(stats.monsterHp, stats.monsterMaxHp);
-      }
+    // Register full stats update handler
+    gameHub.onFullStatsUpdate((data: PlayerFullStats) => {
+      console.log('Full stats update:', data);
+      playerStore.setFullStats(data);
+    });
+
+    // Register inventory update handler
+    gameHub.onInventoryUpdate((data: InventoryData) => {
+      console.log('Inventory update:', data);
+      playerStore.setInventory(data);
+    });
+
+    // Register map update handler
+    gameHub.onMapUpdate((data: MapData) => {
+      console.log('Map update:', data);
+      playerStore.setMapData(data);
+    });
+
+    // Register skills update handler
+    gameHub.onSkillsUpdate((data: SkillsData) => {
+      console.log('Skills update:', data);
+      playerStore.setSkills(data);
     });
 
     // Join the game with username
@@ -76,15 +132,15 @@ const connectSignalR = async () => {
   }
 };
 
-const parseCombatMessage = (user: string, message: string) => {
+const parseCombatMessage = (_user: string, message: string) => {
   // 偵測戰鬥開始 (中英文訊息都支援)
   if (message.includes('Combat started with') || message.includes('開始與')) {
     const match = message.match(/Combat started with (.+?)!/) || message.match(/開始與 (.+?) 戰鬥/);
     if (match) {
-      const monsterName = match[1];
+      const monsterName = match[1] ?? 'Unknown';
       const hpMatch = message.match(/HP: (\d+)\/(\d+)/) || message.match(/生命值: (\d+)\/(\d+)/);
       if (hpMatch) {
-        playerStore.startCombat(monsterName, parseInt(hpMatch[1]), parseInt(hpMatch[2]));
+        playerStore.startCombat(monsterName, parseInt(hpMatch[1] ?? '100'), parseInt(hpMatch[2] ?? '100'));
       } else {
         playerStore.startCombat(monsterName, 100, 100);
       }
@@ -126,13 +182,13 @@ const handleKeyDown = (e: KeyboardEvent) => {
     e.preventDefault();
     if (historyIndex.value > 0) {
       historyIndex.value--;
-      commandInput.value = commandHistory.value[historyIndex.value];
+      commandInput.value = commandHistory.value[historyIndex.value] ?? '';
     }
   } else if (e.key === 'ArrowDown') {
     e.preventDefault();
     if (historyIndex.value < commandHistory.value.length - 1) {
       historyIndex.value++;
-      commandInput.value = commandHistory.value[historyIndex.value];
+      commandInput.value = commandHistory.value[historyIndex.value] ?? '';
     } else {
       historyIndex.value = commandHistory.value.length;
       commandInput.value = '';
@@ -159,6 +215,12 @@ watch(() => authStore.isAuthenticated, (newValue) => {
 const handleLogout = () => {
   authStore.logout();
 };
+
+const handleClassSelect = async () => {
+  if (selectedClass.value === null) return;
+  isCreatingCharacter.value = true;
+  await gameHub.createCharacter(selectedClass.value);
+};
 </script>
 
 <template>
@@ -166,14 +228,66 @@ const handleLogout = () => {
     <!-- Login Screen -->
     <Login v-if="!authStore.isAuthenticated" />
 
+    <!-- Class Selection Modal -->
+    <div v-else-if="showClassSelection" class="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
+      <div class="w-full max-w-4xl p-8 space-y-8 bg-gray-800 rounded-xl shadow-2xl">
+        <div class="text-center">
+          <h2 class="text-4xl font-bold text-yellow-500 mb-2">選擇你的職業</h2>
+          <p class="text-gray-400">選擇一個職業開始你的冒險</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div
+            v-for="cls in classOptions"
+            :key="cls.type"
+            @click="selectedClass = cls.type"
+            :class="[
+              'p-6 rounded-xl cursor-pointer transition-all border-2 transform hover:scale-105',
+              selectedClass === cls.type
+                ? 'border-yellow-500 bg-gray-700 shadow-lg shadow-yellow-500/20'
+                : 'border-gray-600 bg-gray-750 hover:border-gray-500'
+            ]"
+          >
+            <div class="text-center mb-4">
+              <span class="text-5xl">
+                {{ cls.type === 0 ? '&#x2694;&#xFE0F;' : cls.type === 1 ? '&#x1F9D9;' : '&#x2728;' }}
+              </span>
+            </div>
+            <h3 class="text-2xl font-bold text-yellow-400 mb-3 text-center">{{ cls.name }}</h3>
+            <p class="text-sm text-gray-300 mb-4 text-center">{{ cls.description }}</p>
+            <div class="bg-black/30 rounded-lg p-3">
+              <p class="text-xs text-gray-400 font-mono text-center">{{ cls.stats }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-center gap-4">
+          <button
+            @click="handleLogout"
+            class="px-8 py-4 text-xl font-bold text-gray-300 bg-gray-600 rounded-lg hover:bg-gray-500 transition-all"
+          >
+            返回登入
+          </button>
+          <button
+            @click="handleClassSelect"
+            :disabled="selectedClass === null || isCreatingCharacter"
+            class="px-12 py-4 text-xl font-bold text-gray-900 bg-yellow-500 rounded-lg hover:bg-yellow-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-yellow-500 transform hover:scale-105"
+          >
+            {{ isCreatingCharacter ? '建立中...' : '確認選擇' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Game Screen (3-Column Layout) -->
     <div v-else class="h-screen p-4 flex gap-4 overflow-hidden bg-gradient-to-br from-gray-900 via-gray-950 to-black">
-      <!-- Left Panel: Status (20%) -->
+      <!-- Left Panel: Status & Skills (20%) -->
       <div class="w-1/5 flex flex-col gap-4">
-        <StatusPanel class="flex-1 shadow-lg" />
+        <StatusPanel class="h-1/2 shadow-lg" />
+        <SkillPanel class="h-1/2 shadow-lg" />
         <button
           @click="handleLogout"
-          class="w-full py-2 bg-red-600 rounded hover:bg-red-500 transition-colors font-bold"
+          class="w-full py-2 bg-red-600 rounded hover:bg-red-500 transition-colors font-bold shrink-0"
         >
           登出
         </button>

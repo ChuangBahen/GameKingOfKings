@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, watch } from 'vue'
+import { usePlayerStore } from '../stores/player'
 
 interface Message {
   user: string;
@@ -11,13 +12,23 @@ const props = defineProps<{
   messages: Message[];
 }>();
 
-// Filter messages for terminal (exclude combat-only messages if needed)
+const playerStore = usePlayerStore()
+
+// Use store's generalMessages if available, otherwise fallback to props
 const terminalMessages = computed(() => {
-  return props.messages;
+  if (playerStore.generalMessages.length > 0) {
+    return playerStore.generalMessages
+  }
+  // Fallback: filter out combat messages from props
+  return props.messages.filter(m =>
+    m.user !== 'Combat' &&
+    !m.content.includes('⚔️ 戰鬥') &&
+    !m.content.includes('Combat started')
+  )
 });
 
 // Auto-scroll when new messages arrive
-watch(() => props.messages.length, () => {
+watch(() => terminalMessages.value.length, () => {
   nextTick(() => {
     const terminal = document.getElementById('terminal-output');
     if (terminal) {
@@ -27,7 +38,10 @@ watch(() => props.messages.length, () => {
 });
 
 const formatTime = (date: Date) => {
-  return date.toLocaleTimeString('zh-TW', { hour12: false });
+  if (date instanceof Date) {
+    return date.toLocaleTimeString('zh-TW', { hour12: false });
+  }
+  return new Date(date).toLocaleTimeString('zh-TW', { hour12: false });
 };
 
 const getUserColor = (user: string) => {

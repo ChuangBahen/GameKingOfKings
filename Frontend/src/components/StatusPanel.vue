@@ -1,22 +1,58 @@
 <script setup lang="ts">
 import { usePlayerStore } from '../stores/player'
+import { computed } from 'vue'
 
 const playerStore = usePlayerStore()
+
+// Use fullStats if available, otherwise fall back to basic player data
+const displayStats = computed(() => {
+  if (playerStore.fullStats) {
+    return {
+      name: playerStore.fullStats.name,
+      className: playerStore.fullStats.className,
+      level: playerStore.fullStats.level,
+      currentHp: playerStore.fullStats.currentHp,
+      maxHp: playerStore.fullStats.maxHp,
+      currentMp: playerStore.fullStats.currentMp,
+      maxMp: playerStore.fullStats.maxMp,
+      exp: playerStore.fullStats.exp,
+      expRequired: playerStore.fullStats.expRequired,
+      stats: playerStore.fullStats.stats,
+      equipmentBonuses: playerStore.fullStats.equipmentBonuses
+    }
+  }
+  if (playerStore.player) {
+    return {
+      name: playerStore.player.name,
+      className: playerStore.player.className,
+      level: playerStore.player.level,
+      currentHp: playerStore.player.currentHp,
+      maxHp: playerStore.player.maxHp,
+      currentMp: playerStore.player.currentMp,
+      maxMp: playerStore.player.maxMp,
+      exp: playerStore.player.exp,
+      expRequired: playerStore.player.level * 100,
+      stats: null,
+      equipmentBonuses: null
+    }
+  }
+  return null
+})
 </script>
 
 <template>
-  <div class="bg-gray-800/90 backdrop-blur p-4 rounded-xl border border-gray-700 text-white h-full flex flex-col">
+  <div class="bg-gray-800/90 backdrop-blur p-4 rounded-xl border border-gray-700 text-white h-full flex flex-col overflow-y-auto">
     <h2 class="text-xl font-bold mb-4 text-yellow-400 border-b border-gray-600 pb-2">
       ⚔️ 狀態
     </h2>
 
-    <div v-if="playerStore.player" class="flex-1 space-y-4">
+    <div v-if="displayStats" class="flex-1 space-y-3">
       <!-- Name & Level -->
       <div class="bg-gray-900/50 rounded-lg p-3">
-        <div class="text-lg font-bold text-cyan-400">{{ playerStore.player.name }}</div>
+        <div class="text-lg font-bold text-cyan-400">{{ displayStats.name }}</div>
         <div class="text-sm text-gray-400">
-          等級 <span class="text-yellow-400 font-bold">{{ playerStore.player.level }}</span>
-          <span v-if="playerStore.player.className" class="ml-2">• {{ playerStore.player.className }}</span>
+          等級 <span class="text-yellow-400 font-bold">{{ displayStats.level }}</span>
+          <span v-if="displayStats.className" class="ml-2">• {{ displayStats.className }}</span>
         </div>
       </div>
 
@@ -24,7 +60,7 @@ const playerStore = usePlayerStore()
       <div class="space-y-1">
         <div class="flex justify-between text-sm">
           <span class="text-red-400 font-medium">❤️ 生命值</span>
-          <span class="text-gray-300">{{ playerStore.player.currentHp }} / {{ playerStore.player.maxHp }}</span>
+          <span class="text-gray-300">{{ displayStats.currentHp }} / {{ displayStats.maxHp }}</span>
         </div>
         <div class="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
           <div
@@ -38,7 +74,7 @@ const playerStore = usePlayerStore()
       <div class="space-y-1">
         <div class="flex justify-between text-sm">
           <span class="text-blue-400 font-medium">💧 魔力值</span>
-          <span class="text-gray-300">{{ playerStore.player.currentMp }} / {{ playerStore.player.maxMp }}</span>
+          <span class="text-gray-300">{{ displayStats.currentMp }} / {{ displayStats.maxMp }}</span>
         </div>
         <div class="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
           <div
@@ -52,7 +88,7 @@ const playerStore = usePlayerStore()
       <div class="space-y-1">
         <div class="flex justify-between text-sm">
           <span class="text-yellow-400 font-medium">⭐ 經驗值</span>
-          <span class="text-gray-300">{{ playerStore.player.exp }} / {{ playerStore.player.level * 100 }}</span>
+          <span class="text-gray-300">{{ displayStats.exp }} / {{ displayStats.expRequired }}</span>
         </div>
         <div class="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
           <div
@@ -62,8 +98,65 @@ const playerStore = usePlayerStore()
         </div>
       </div>
 
+      <!-- Character Stats (五維屬性) -->
+      <div v-if="displayStats.stats" class="bg-gray-900/50 rounded-lg p-3">
+        <div class="text-sm font-bold text-gray-400 mb-2">屬性</div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div class="flex justify-between">
+            <span class="text-orange-400">力量 STR</span>
+            <span class="text-white">
+              {{ displayStats.stats.str }}
+              <span v-if="displayStats.equipmentBonuses?.str" class="text-green-400">+{{ displayStats.equipmentBonuses.str }}</span>
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-green-400">敏捷 DEX</span>
+            <span class="text-white">
+              {{ displayStats.stats.dex }}
+              <span v-if="displayStats.equipmentBonuses?.dex" class="text-green-400">+{{ displayStats.equipmentBonuses.dex }}</span>
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-purple-400">智力 INT</span>
+            <span class="text-white">
+              {{ displayStats.stats.int }}
+              <span v-if="displayStats.equipmentBonuses?.int" class="text-green-400">+{{ displayStats.equipmentBonuses.int }}</span>
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-blue-400">智慧 WIS</span>
+            <span class="text-white">
+              {{ displayStats.stats.wis }}
+              <span v-if="displayStats.equipmentBonuses?.wis" class="text-green-400">+{{ displayStats.equipmentBonuses.wis }}</span>
+            </span>
+          </div>
+          <div class="flex justify-between col-span-2">
+            <span class="text-red-400">體質 CON</span>
+            <span class="text-white">
+              {{ displayStats.stats.con }}
+              <span v-if="displayStats.equipmentBonuses?.con" class="text-green-400">+{{ displayStats.equipmentBonuses.con }}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Equipment Bonuses -->
+      <div v-if="displayStats.equipmentBonuses && (displayStats.equipmentBonuses.atk > 0 || displayStats.equipmentBonuses.def > 0)" class="bg-gray-900/50 rounded-lg p-3">
+        <div class="text-sm font-bold text-gray-400 mb-2">裝備加成</div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div v-if="displayStats.equipmentBonuses.atk > 0" class="flex justify-between">
+            <span class="text-red-400">攻擊力</span>
+            <span class="text-green-400">+{{ displayStats.equipmentBonuses.atk }}</span>
+          </div>
+          <div v-if="displayStats.equipmentBonuses.def > 0" class="flex justify-between">
+            <span class="text-blue-400">防禦力</span>
+            <span class="text-green-400">+{{ displayStats.equipmentBonuses.def }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Combat Status -->
-      <div v-if="playerStore.combat.inCombat" class="bg-red-900/30 border border-red-700 rounded-lg p-3 mt-4">
+      <div v-if="playerStore.combat.inCombat" class="bg-red-900/30 border border-red-700 rounded-lg p-3">
         <div class="text-red-400 font-bold text-sm flex items-center gap-2">
           <span class="animate-pulse">⚔️</span>
           戰鬥中
