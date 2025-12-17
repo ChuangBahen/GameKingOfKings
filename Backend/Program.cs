@@ -103,4 +103,15 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<GameHub>("/gameHub");
 
+// 在程式關閉時執行 WAL Checkpoint，確保所有資料寫入 game.db
+var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
+lifetime.ApplicationStopping.Register(() =>
+{
+    Console.WriteLine("正在執行 SQLite WAL Checkpoint...");
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.ExecuteSqlRaw("PRAGMA wal_checkpoint(TRUNCATE);");
+    Console.WriteLine("WAL Checkpoint 完成，資料已安全寫入 game.db");
+});
+
 app.Run();
