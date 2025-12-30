@@ -97,6 +97,18 @@ class GameHubService {
     // 啟動連線
     public async start() {
         try {
+            // 如果已經連線，不要重複建立連線
+            if (this.connection?.state === signalR.HubConnectionState.Connected) {
+                console.log("SignalR already connected, skipping...");
+                return;
+            }
+
+            // 如果正在連線中，等待完成
+            if (this.connection?.state === signalR.HubConnectionState.Connecting) {
+                console.log("SignalR is connecting, skipping...");
+                return;
+            }
+
             // 每次啟動時重新初始化連線（確保使用最新的 token）
             this.initConnection();
 

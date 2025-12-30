@@ -363,7 +363,16 @@ public class GameHub : Hub
 
                 exits.Add(new ExitInfoDto
                 {
-                    Direction = exit.Key,
+                    Direction = exit.Key switch
+                    {
+                        "n" => "north",
+                        "s" => "south",
+                        "e" => "east",
+                        "w" => "west",
+                        "u" => "up",
+                        "d" => "down",
+                        _ => exit.Key
+                    },
                     RoomId = exit.Value,
                     RoomName = targetRoom?.Name ?? "未知",
                     HasMonsters = hasMonsters

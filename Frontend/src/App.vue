@@ -202,10 +202,11 @@ onMounted(() => {
   }
 });
 
-watch(() => authStore.isAuthenticated, (newValue) => {
-  if (newValue) {
+watch(() => authStore.isAuthenticated, (newValue, oldValue) => {
+  // 只在狀態真正變化時觸發，避免與 onMounted 重複
+  if (newValue && !oldValue) {
     connectSignalR();
-  } else {
+  } else if (!newValue) {
     gameHub.stop();
     playerStore.setConnected(false);
     messages.value = [];

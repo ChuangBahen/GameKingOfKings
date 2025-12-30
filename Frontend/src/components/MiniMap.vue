@@ -1,6 +1,22 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { usePlayerStore } from '../stores/player'
+import { gameHub } from '../services/gameHub'
+
+// T002: 顏色常數物件
+const COLORS = {
+  safe: '#4ade80',      // 綠色 - 安全出口
+  danger: '#ef4444',    // 紅色 - 有怪物
+  noExit: '#374151',    // 灰色 - 無出口
+  player: '#3b82f6',    // 藍色 - 玩家位置
+  vertical: '#a855f7'   // 紫色 - 上下方向（安全時）
+} as const
+
+// T003: 所有方向陣列
+const ALL_DIRECTIONS = ['north', 'south', 'east', 'west', 'up', 'down'] as const
+
+// T004: 垂直方向陣列
+const VERTICAL_DIRECTIONS = ['up', 'down'] as const
 
 const playerStore = usePlayerStore()
 
@@ -43,6 +59,38 @@ const hasExit = (direction: string): boolean => {
 const getExitInfo = (direction: string) => {
   return exits.value.find(e => e.direction.toLowerCase() === direction.toLowerCase())
 }
+
+// T006: 取得出口顏色（優先級：危險 > 垂直 > 安全）
+const getExitColor = (dir: string): string => {
+  const exitInfo = getExitInfo(dir)
+  if (!exitInfo) return COLORS.noExit
+  if (exitInfo.hasMonsters) return COLORS.danger
+  if (isVerticalDirection(dir)) return COLORS.vertical
+  return COLORS.safe
+}
+
+// T007: 判斷是否為垂直方向（上/下）
+const isVerticalDirection = (dir: string): boolean => {
+  return VERTICAL_DIRECTIONS.includes(dir.toLowerCase() as typeof VERTICAL_DIRECTIONS[number])
+}
+
+// T008: 取得 tooltip 文字（房間名稱 + 怪物警告）
+const getTooltipText = (dir: string): string => {
+  const exitInfo = getExitInfo(dir)
+  if (!exitInfo) return ''
+  const roomName = exitInfo.roomName || '未知'
+  const monsterWarning = exitInfo.hasMonsters ? ' - 有怪物出沒' : ''
+  return `${roomName}${monsterWarning}`
+}
+
+// T017: 處理出口點擊事件
+const handleExitClick = (dir: string) => {
+  console.log('[MiniMap] handleExitClick called:', dir, 'hasExit:', hasExit(dir))
+  if (hasExit(dir)) {
+    console.log('[MiniMap] Sending command: go', dir)
+    gameHub.sendCommand(`go ${dir}`)
+  }
+}
 </script>
 
 <template>
@@ -52,31 +100,36 @@ const getExitInfo = (direction: string) => {
     <!-- Map Visualization -->
     <div class="flex-1 flex items-center justify-center">
       <svg width="200" height="200" viewBox="0 0 200 200" class="opacity-80">
-        <!-- Connection lines to exits -->
+        <!-- T009: Connection lines to exits - 改為 ALL_DIRECTIONS -->
         <line
-          v-for="dir in ['north', 'south', 'east', 'west']"
+          v-for="dir in ALL_DIRECTIONS"
           :key="dir"
           :x1="100"
           :y1="100"
           :x2="getPosition(dir).x"
           :y2="getPosition(dir).y"
-          :stroke="hasExit(dir) ? '#4ade80' : '#374151'"
+          :stroke="getExitColor(dir)"
           stroke-width="2"
           :stroke-dasharray="hasExit(dir) ? 'none' : '4'"
         />
 
-        <!-- Exit nodes -->
-        <g v-for="dir in ['north', 'south', 'east', 'west']" :key="'node-' + dir">
+        <!-- T010: Exit nodes - 改為 ALL_DIRECTIONS -->
+        <g v-for="dir in ALL_DIRECTIONS" :key="'node-' + dir">
+          <!-- T012, T015, T018-T21: 出口節點 - 使用動態顏色和點擊事件 -->
           <circle
             v-if="hasExit(dir)"
             :cx="getPosition(dir).x"
             :cy="getPosition(dir).y"
             r="12"
-            fill="#1f2937"
-            stroke="#4ade80"
+            :fill="getExitInfo(dir)?.hasMonsters ? '#2d1f1f' : '#1f2937'"
+            :stroke="getExitColor(dir)"
             stroke-width="2"
-            class="cursor-pointer hover:fill-gray-700"
-          />
+            class="cursor-pointer transition-all duration-150 hover:opacity-80"
+            @click="handleExitClick(dir)"
+          >
+            <!-- T022-T024: Room name tooltip with monster warning -->
+            <title>{{ getTooltipText(dir) }}</title>
+          </circle>
           <!-- Direction label -->
           <text
             v-if="hasExit(dir)"
@@ -85,11 +138,10 @@ const getExitInfo = (direction: string) => {
             text-anchor="middle"
             fill="#9ca3af"
             font-size="10"
+            class="pointer-events-none"
           >
             {{ directionLabels[dir] }}
           </text>
-          <!-- Room name tooltip -->
-          <title v-if="hasExit(dir)">{{ getExitInfo(dir)?.roomName || '未知' }}</title>
         </g>
 
         <!-- Current Location (Center) -->
