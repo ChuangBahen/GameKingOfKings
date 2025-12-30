@@ -25,14 +25,14 @@ const mapData = computed(() => playerStore.mapData)
 const currentRoom = computed(() => mapData.value?.currentRoom)
 const exits = computed(() => mapData.value?.exits ?? [])
 
-// Direction positions for SVG rendering
+// Direction positions for SVG rendering (中心點: 100, 100)
 const directionPositions = {
-  north: { x: 100, y: 40 },
-  south: { x: 100, y: 160 },
-  east: { x: 160, y: 100 },
-  west: { x: 40, y: 100 },
-  up: { x: 140, y: 40 },
-  down: { x: 60, y: 160 }
+  north: { x: 100, y: 35 },
+  south: { x: 100, y: 165 },
+  east: { x: 165, y: 100 },
+  west: { x: 35, y: 100 },
+  up: { x: 165, y: 35 },    // 右上角
+  down: { x: 35, y: 165 }   // 左下角
 } as const
 
 // Get position for a direction (with fallback)
@@ -98,11 +98,11 @@ const handleExitClick = (dir: string) => {
     <h3 class="text-gray-400 text-xs uppercase tracking-widest mb-2 font-bold">小地圖</h3>
 
     <!-- Map Visualization -->
-    <div class="flex-1 flex items-center justify-center">
-      <svg width="200" height="200" viewBox="0 0 200 200" class="opacity-80">
-        <!-- T009: Connection lines to exits - 改為 ALL_DIRECTIONS -->
+    <div class="flex-1 flex items-center justify-center min-h-0">
+      <svg viewBox="0 0 200 200" class="w-full h-full max-w-[180px] max-h-[180px]">
+        <!-- Connection lines for cardinal directions (東西南北) - 只顯示有出口的 -->
         <line
-          v-for="dir in ALL_DIRECTIONS"
+          v-for="dir in ['north', 'south', 'east', 'west'].filter(d => hasExit(d))"
           :key="dir"
           :x1="100"
           :y1="100"
@@ -110,7 +110,18 @@ const handleExitClick = (dir: string) => {
           :y2="getPosition(dir).y"
           :stroke="getExitColor(dir)"
           stroke-width="2"
-          :stroke-dasharray="hasExit(dir) ? 'none' : '4'"
+        />
+        <!-- Connection lines for vertical directions (上/下) - 斜線虛線樣式 -->
+        <line
+          v-for="dir in ['up', 'down'].filter(d => hasExit(d))"
+          :key="'v-' + dir"
+          :x1="100"
+          :y1="100"
+          :x2="getPosition(dir).x"
+          :y2="getPosition(dir).y"
+          :stroke="getExitColor(dir)"
+          stroke-width="2"
+          stroke-dasharray="6,3"
         />
 
         <!-- T010: Exit nodes - 改為 ALL_DIRECTIONS -->
