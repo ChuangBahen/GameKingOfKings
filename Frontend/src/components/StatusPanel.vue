@@ -18,7 +18,9 @@ const displayStats = computed(() => {
       exp: playerStore.fullStats.exp,
       expRequired: playerStore.fullStats.expRequired,
       stats: playerStore.fullStats.stats,
-      equipmentBonuses: playerStore.fullStats.equipmentBonuses
+      equipmentBonuses: playerStore.fullStats.equipmentBonuses,
+      setBonuses: playerStore.fullStats.setBonuses || null,
+      activeSets: playerStore.fullStats.activeSets || []
     }
   }
   if (playerStore.player) {
@@ -33,7 +35,9 @@ const displayStats = computed(() => {
       exp: playerStore.player.exp,
       expRequired: playerStore.player.level * 100,
       stats: null,
-      equipmentBonuses: null
+      equipmentBonuses: null,
+      setBonuses: null,
+      activeSets: []
     }
   }
   return null
@@ -106,51 +110,81 @@ const displayStats = computed(() => {
             <span class="text-orange-400">力量 STR</span>
             <span class="text-white">
               {{ displayStats.stats.str }}
-              <span v-if="displayStats.equipmentBonuses?.str" class="text-green-400">+{{ displayStats.equipmentBonuses.str }}</span>
+              <span v-if="displayStats.equipmentBonuses?.str > 0" class="text-green-400">+{{ displayStats.equipmentBonuses.str }}</span>
+              <span v-if="displayStats.setBonuses?.str > 0" class="text-blue-400">+{{ displayStats.setBonuses.str }}</span>
             </span>
           </div>
           <div class="flex justify-between">
             <span class="text-green-400">敏捷 DEX</span>
             <span class="text-white">
               {{ displayStats.stats.dex }}
-              <span v-if="displayStats.equipmentBonuses?.dex" class="text-green-400">+{{ displayStats.equipmentBonuses.dex }}</span>
+              <span v-if="displayStats.equipmentBonuses?.dex > 0" class="text-green-400">+{{ displayStats.equipmentBonuses.dex }}</span>
+              <span v-if="displayStats.setBonuses?.dex > 0" class="text-blue-400">+{{ displayStats.setBonuses.dex }}</span>
             </span>
           </div>
           <div class="flex justify-between">
             <span class="text-purple-400">智力 INT</span>
             <span class="text-white">
               {{ displayStats.stats.int }}
-              <span v-if="displayStats.equipmentBonuses?.int" class="text-green-400">+{{ displayStats.equipmentBonuses.int }}</span>
+              <span v-if="displayStats.equipmentBonuses?.int > 0" class="text-green-400">+{{ displayStats.equipmentBonuses.int }}</span>
+              <span v-if="displayStats.setBonuses?.int > 0" class="text-blue-400">+{{ displayStats.setBonuses.int }}</span>
             </span>
           </div>
           <div class="flex justify-between">
             <span class="text-blue-400">智慧 WIS</span>
             <span class="text-white">
               {{ displayStats.stats.wis }}
-              <span v-if="displayStats.equipmentBonuses?.wis" class="text-green-400">+{{ displayStats.equipmentBonuses.wis }}</span>
+              <span v-if="displayStats.equipmentBonuses?.wis > 0" class="text-green-400">+{{ displayStats.equipmentBonuses.wis }}</span>
+              <span v-if="displayStats.setBonuses?.wis > 0" class="text-blue-400">+{{ displayStats.setBonuses.wis }}</span>
             </span>
           </div>
           <div class="flex justify-between col-span-2">
             <span class="text-red-400">體質 CON</span>
             <span class="text-white">
               {{ displayStats.stats.con }}
-              <span v-if="displayStats.equipmentBonuses?.con" class="text-green-400">+{{ displayStats.equipmentBonuses.con }}</span>
+              <span v-if="displayStats.equipmentBonuses?.con > 0" class="text-green-400">+{{ displayStats.equipmentBonuses.con }}</span>
+              <span v-if="displayStats.setBonuses?.con > 0" class="text-blue-400">+{{ displayStats.setBonuses.con }}</span>
             </span>
           </div>
         </div>
       </div>
 
-      <!-- Equipment Bonuses -->
-      <div v-if="displayStats.equipmentBonuses && (displayStats.equipmentBonuses.atk > 0 || displayStats.equipmentBonuses.def > 0)" class="bg-gray-900/50 rounded-lg p-3">
-        <div class="text-sm font-bold text-gray-400 mb-2">裝備加成</div>
+      <!-- Equipment & Set Bonuses -->
+      <div v-if="(displayStats.equipmentBonuses && (displayStats.equipmentBonuses.atk > 0 || displayStats.equipmentBonuses.def > 0)) ||
+                 (displayStats.setBonuses && (displayStats.setBonuses.atk > 0 || displayStats.setBonuses.def > 0))"
+           class="bg-gray-900/50 rounded-lg p-3">
+        <div class="text-sm font-bold text-gray-400 mb-2">戰鬥加成</div>
         <div class="grid grid-cols-2 gap-2 text-xs">
-          <div v-if="displayStats.equipmentBonuses.atk > 0" class="flex justify-between">
+          <div v-if="(displayStats.equipmentBonuses?.atk || 0) > 0 || (displayStats.setBonuses?.atk || 0) > 0"
+               class="flex justify-between">
             <span class="text-red-400">攻擊力</span>
-            <span class="text-green-400">+{{ displayStats.equipmentBonuses.atk }}</span>
+            <span>
+              <span v-if="displayStats.equipmentBonuses?.atk" class="text-green-400">+{{ displayStats.equipmentBonuses.atk }}</span>
+              <span v-if="displayStats.setBonuses?.atk" class="text-blue-400 ml-1">+{{ displayStats.setBonuses.atk }}</span>
+            </span>
           </div>
-          <div v-if="displayStats.equipmentBonuses.def > 0" class="flex justify-between">
+          <div v-if="(displayStats.equipmentBonuses?.def || 0) > 0 || (displayStats.setBonuses?.def || 0) > 0"
+               class="flex justify-between">
             <span class="text-blue-400">防禦力</span>
-            <span class="text-green-400">+{{ displayStats.equipmentBonuses.def }}</span>
+            <span>
+              <span v-if="displayStats.equipmentBonuses?.def" class="text-green-400">+{{ displayStats.equipmentBonuses.def }}</span>
+              <span v-if="displayStats.setBonuses?.def" class="text-blue-400 ml-1">+{{ displayStats.setBonuses.def }}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Equipment Sets -->
+      <div v-if="displayStats.activeSets && displayStats.activeSets.length > 0"
+           class="bg-gray-900/50 rounded-lg p-3">
+        <div class="text-sm font-bold text-purple-400 mb-2">✨ 套裝效果</div>
+        <div v-for="set in displayStats.activeSets" :key="set.setName" class="mb-2 last:mb-0">
+          <div class="text-xs text-blue-300 font-medium">
+            {{ set.setName }} ({{ set.equippedPieces }}/{{ set.totalPieces }})
+          </div>
+          <div v-for="bonus in set.activeBonuses" :key="bonus.requiredPieces"
+               class="text-xs text-gray-400 ml-2">
+            • {{ bonus.requiredPieces }}件: {{ bonus.description }}
           </div>
         </div>
       </div>

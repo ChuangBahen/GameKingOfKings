@@ -199,17 +199,26 @@ public class GameEngine : IGameEngine
 
         // 計算裝備加成
         var eq = await GetEquipmentBonusesAsync(db, player.Id);
-        int totalStr = player.Stats.Str + eq["Str"];
-        int totalDex = player.Stats.Dex + eq["Dex"];
-        int totalCon = player.Stats.Con + eq["Con"];
-        int totalInt = player.Stats.Int + eq["Int"];
-        int totalWis = player.Stats.Wis + eq["Wis"];
-        int totalAtk = eq["Atk"];
-        int totalDef = eq["Def"];
 
-        // 格式化屬性顯示（有加成時顯示綠色 +N）
-        string FormatStat(string name, int baseVal, int bonus) =>
-            bonus > 0 ? $"{name}: {baseVal}<span class='text-green-400'>+{bonus}</span>" : $"{name}: {baseVal}";
+        // 計算套裝加成
+        using var scope = _serviceProvider.CreateScope();
+        var setBonusService = scope.ServiceProvider.GetRequiredService<ISetBonusService>();
+        var setTotalBonuses = await setBonusService.CalculateSetBonusesAsync(player.Id);
+        var activeSets = await setBonusService.GetActiveSetBonusesAsync(player.Id);
+
+        // 取得套裝加成整數值
+        int GetSetBonus(string key) => (int)Math.Round(setTotalBonuses.GetValueOrDefault(key, 0));
+
+        // 格式化屬性顯示（分離裝備加成和套裝加成）
+        string FormatStatWithBonuses(string name, int baseVal, int eqBonus, int setBonus)
+        {
+            var parts = new List<string> { $"{name}: {baseVal}" };
+            if (eqBonus > 0)
+                parts.Add($"<span class='text-green-400'>(+{eqBonus}裝備)</span>");
+            if (setBonus > 0)
+                parts.Add($"<span class='text-blue-400'>(+{setBonus}套裝)</span>");
+            return string.Join(" ", parts);
+        }
 
         var result = $@"<div class='text-yellow-400 font-bold'>═══ {player.Name} ═══</div>
 <div>職業: <span class='text-cyan-400'>{className}</span> | 等級: <span class='text-green-400'>{player.Level}</span></div>
@@ -217,13 +226,45 @@ public class GameEngine : IGameEngine
 <div class='mt-2'>生命值: <span class='text-red-400'>{player.CurrentHp}/{player.MaxHp}</span></div>
 <div>魔力值: <span class='text-blue-400'>{player.CurrentMp}/{player.MaxMp}</span></div>
 <div class='mt-2 text-gray-300'>═══ 屬性 ═══</div>
-<div>{FormatStat("力量", player.Stats.Str, eq["Str"])} | {FormatStat("敏捷", player.Stats.Dex, eq["Dex"])} | {FormatStat("體質", player.Stats.Con, eq["Con"])}</div>
-<div>{FormatStat("智力", player.Stats.Int, eq["Int"])} | {FormatStat("智慧", player.Stats.Wis, eq["Wis"])}</div>";
+<div>{FormatStatWithBonuses("力量", player.Stats.Str, eq["Str"], GetSetBonus("Str"))}</div>
+<div>{FormatStatWithBonuses("敏捷", player.Stats.Dex, eq["Dex"], GetSetBonus("Dex"))}</div>
+<div>{FormatStatWithBonuses("體質", player.Stats.Con, eq["Con"], GetSetBonus("Con"))}</div>
+<div>{FormatStatWithBonuses("智力", player.Stats.Int, eq["Int"], GetSetBonus("Int"))}</div>
+<div>{FormatStatWithBonuses("智慧", player.Stats.Wis, eq["Wis"], GetSetBonus("Wis"))}</div>";
 
-        // 顯示裝備攻防加成
+        // 顯示裝備和套裝攻防加成
+        int totalAtk = eq["Atk"] + GetSetBonus("Atk");
+        int totalDef = eq["Def"] + GetSetBonus("Def");
+
         if (totalAtk > 0 || totalDef > 0)
         {
-            result += $"\n<div class='text-orange-400'>攻擊: +{totalAtk} | 防禦: +{totalDef}</div>";
+            var atkParts = new List<string>();
+            var defParts = new List<string>();
+
+            if (eq["Atk"] > 0) atkParts.Add($"<span class='text-green-400'>+{eq["Atk"]}裝備</span>");
+            if (GetSetBonus("Atk") > 0) atkParts.Add($"<span class='text-blue-400'>+{GetSetBonus("Atk")}套裝</span>");
+            if (eq["Def"] > 0) defParts.Add($"<span class='text-green-400'>+{eq["Def"]}裝備</span>");
+            if (GetSetBonus("Def") > 0) defParts.Add($"<span class='text-blue-400'>+{GetSetBonus("Def")}套裝</span>");
+
+            var atkDisplay = atkParts.Any() ? string.Join(" ", atkParts) : "0";
+            var defDisplay = defParts.Any() ? string.Join(" ", defParts) : "0";
+            result += $"\n<div class='text-orange-400'>攻擊: {atkDisplay} | 防禦: {defDisplay}</div>";
+        }
+
+        // 顯示啟用的套裝效果
+        if (activeSets.Any())
+        {
+            result += "\n<div class='mt-2 text-purple-400'>═══ 套裝效果 ═══</div>";
+            foreach (var set in activeSets)
+            {
+                result += $"\n<div class='text-blue-300'>{set.SetName} ({set.EquippedPieces}/{set.TotalPieces})</div>";
+                foreach (var bonus in set.ActiveBonuses)
+                {
+                    var bonusText = string.Join(", ", bonus.Bonuses.Select(b =>
+                        $"{GetStatDisplayName(b.Key)}+{b.Value:F0}"));
+                    result += $"\n<div class='text-gray-300'>  • {bonus.RequiredPieces}件: {bonusText}</div>";
+                }
+            }
         }
 
         if (inCombat)
@@ -338,12 +379,13 @@ public class GameEngine : IGameEngine
                           inventoryItem.Item.Name.Contains("項鍊") ||
                           inventoryItem.Item.Name.Contains("耳環");
 
-        var slot = inventoryItem.Item.Type switch
+        // 優先使用 Item.EquipmentSlot,向後兼容舊資料
+        var slot = inventoryItem.Item.EquipmentSlot ?? (inventoryItem.Item.Type switch
         {
             ItemType.Weapon => EquipmentSlot.Weapon,
             _ when isAccessory => EquipmentSlot.Accessory,
-            _ => EquipmentSlot.Body  // Armor
-        };
+            _ => EquipmentSlot.Body  // 向後兼容:未指定欄位的 Armor 預設為 Body
+        });
 
         // Check if something is already equipped in that slot
         var currentEquipped = await db.InventoryItems
@@ -561,4 +603,21 @@ public class GameEngine : IGameEngine
 
         return bonuses;
     }
+
+    /// <summary>
+    /// 屬性名稱中英對照
+    /// </summary>
+    private static string GetStatDisplayName(string key) => key.ToLower() switch
+    {
+        "str" or "strength" => "力量",
+        "dex" or "dexterity" => "敏捷",
+        "int" or "intelligence" => "智力",
+        "wis" or "wisdom" => "智慧",
+        "con" or "constitution" => "體質",
+        "atk" or "attack" => "攻擊",
+        "def" or "defense" => "防禦",
+        "hp" => "生命",
+        "mp" => "魔力",
+        _ => key
+    };
 }

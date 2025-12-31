@@ -265,6 +265,24 @@ public class GameHub : Hub
     {
         var equipment = await GetEquipmentBonusesAsync(db, player.Id);
 
+        // 計算套裝加成
+        using var scope = _serviceProvider.CreateScope();
+        var setBonusService = scope.ServiceProvider.GetRequiredService<ISetBonusService>();
+        var setTotalBonuses = await setBonusService.CalculateSetBonusesAsync(player.Id);
+        var activeSets = await setBonusService.GetActiveSetBonusesAsync(player.Id);
+
+        // 轉換套裝加成為整數
+        var setBonuses = new Dictionary<string, int>
+        {
+            { "Atk", (int)Math.Round(setTotalBonuses.GetValueOrDefault("Atk", 0)) },
+            { "Def", (int)Math.Round(setTotalBonuses.GetValueOrDefault("Def", 0)) },
+            { "Str", (int)Math.Round(setTotalBonuses.GetValueOrDefault("Str", 0)) },
+            { "Dex", (int)Math.Round(setTotalBonuses.GetValueOrDefault("Dex", 0)) },
+            { "Int", (int)Math.Round(setTotalBonuses.GetValueOrDefault("Int", 0)) },
+            { "Wis", (int)Math.Round(setTotalBonuses.GetValueOrDefault("Wis", 0)) },
+            { "Con", (int)Math.Round(setTotalBonuses.GetValueOrDefault("Con", 0)) }
+        };
+
         var className = player.Class switch
         {
             ClassType.Warrior => "戰士",
@@ -301,7 +319,28 @@ public class GameHub : Hub
                 Int = equipment["Int"],
                 Wis = equipment["Wis"],
                 Con = equipment["Con"]
-            }
+            },
+            SetBonuses = new SetBonusesDto
+            {
+                Atk = setBonuses["Atk"],
+                Def = setBonuses["Def"],
+                Str = setBonuses["Str"],
+                Dex = setBonuses["Dex"],
+                Int = setBonuses["Int"],
+                Wis = setBonuses["Wis"],
+                Con = setBonuses["Con"]
+            },
+            ActiveSets = activeSets.Select(s => new ActiveSetDto
+            {
+                SetName = s.SetName,
+                EquippedPieces = s.EquippedPieces,
+                TotalPieces = s.TotalPieces,
+                ActiveBonuses = s.ActiveBonuses.Select(b => new ActiveBonusDto
+                {
+                    RequiredPieces = b.RequiredPieces,
+                    Description = b.Description
+                }).ToList()
+            }).ToList()
         };
 
         await Clients.Caller.SendAsync("FullStatsUpdate", dto);
@@ -314,6 +353,7 @@ public class GameHub : Hub
     {
         var items = await db.InventoryItems
             .Include(i => i.Item)
+                .ThenInclude(item => item!.EquipmentSet)
             .Where(i => i.PlayerId == playerId)
             .OrderBy(i => i.SlotIndex)
             .ToListAsync();
@@ -331,7 +371,10 @@ public class GameHub : Hub
                 IsEquipped = i.IsEquipped,
                 EquippedSlot = i.EquippedSlot.ToString(),
                 Description = i.Item.Description ?? "",
-                Properties = ParseItemProperties(i.Item.PropertiesJson)
+                Properties = ParseItemProperties(i.Item.PropertiesJson),
+                Quality = (int)i.Item.Quality,
+                SetId = i.Item.SetId,
+                SetName = i.Item.EquipmentSet?.Name
             }).ToList()
         };
 
@@ -524,6 +567,46 @@ public class GameHub : Hub
             return JsonSerializer.Deserialize<Dictionary<string, int>>(json) ?? new();
         }
         catch { return new(); }
+    }
+
+    /// <summary>
+    /// 靜態方法: 推送背包更新 (供 GameLoopService 調用)
+    /// Static method to push inventory update for external callers like GameLoopService
+    /// </summary>
+    public static async Task PushInventoryUpdateAsync(
+        IHubContext<GameHub> hubContext,
+        AppDbContext db,
+        Guid playerId)
+    {
+        var items = await db.InventoryItems
+            .Include(i => i.Item)
+                .ThenInclude(item => item!.EquipmentSet)
+            .Where(i => i.PlayerId == playerId)
+            .OrderBy(i => i.SlotIndex)
+            .ToListAsync();
+
+        var dto = new InventoryDataDto
+        {
+            Gold = 0,
+            Items = items.Where(i => i.Item != null).Select(i => new InventoryItemDto
+            {
+                Id = i.Id.ToString(),
+                Name = i.Item!.Name,
+                Type = i.Item.Type.ToString(),
+                Icon = GetItemIcon(i.Item.Type, i.Item.Name),
+                Quantity = i.Quantity,
+                IsEquipped = i.IsEquipped,
+                EquippedSlot = i.EquippedSlot.ToString(),
+                Description = i.Item.Description ?? "",
+                Properties = ParseItemProperties(i.Item.PropertiesJson),
+                Quality = (int)i.Item.Quality,
+                SetId = i.Item.SetId,
+                SetName = i.Item.EquipmentSet?.Name
+            }).ToList()
+        };
+
+        await hubContext.Clients.Client(playerId.ToString())
+            .SendAsync("InventoryUpdate", dto);
     }
 
     #endregion
