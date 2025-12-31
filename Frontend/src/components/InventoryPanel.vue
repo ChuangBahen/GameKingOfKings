@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import type { InventoryItemDto } from '../types/game'
+import { ItemQuality, QualityColors, QualityNames } from '../types/game'
 
 const playerStore = usePlayerStore()
 
@@ -13,6 +14,25 @@ const typeNames: Record<string, string> = {
   quest: '任務物品',
   accessory: '飾品',
   material: '材料'
+}
+
+// 取得品質顏色樣式
+const getQualityStyle = (quality: number | undefined): { color: string } => {
+  const q = quality ?? ItemQuality.Common
+  const colorMap = QualityColors as Record<number, string>
+  return { color: colorMap[q] ?? colorMap[ItemQuality.Common] ?? '#9CA3AF' }
+}
+
+// 取得品質名稱
+const getQualityName = (quality: number | undefined): string => {
+  const q = quality ?? ItemQuality.Common
+  const nameMap = QualityNames as Record<number, string>
+  return nameMap[q] ?? nameMap[ItemQuality.Common] ?? '普通'
+}
+
+// 判斷是否為裝備類型
+const isEquipmentType = (type: string): boolean => {
+  return ['weapon', 'armor', 'accessory'].includes(type.toLowerCase())
 }
 
 // Selected item for detail view
@@ -111,8 +131,21 @@ const getIcon = (item: InventoryItemDto): string => {
         >
           <span class="text-lg">{{ getIcon(item) }}</span>
           <div class="flex-1 min-w-0">
-            <div class="text-sm text-white truncate">{{ item.name }}</div>
-            <div class="text-xs text-gray-500">{{ typeNames[item.type] || item.type }}</div>
+            <div
+              class="text-sm truncate font-medium"
+              :style="isEquipmentType(item.type) ? getQualityStyle(item.quality) : { color: 'white' }"
+            >
+              {{ item.name }}
+            </div>
+            <div class="text-xs text-gray-500 flex items-center gap-1">
+              <span>{{ typeNames[item.type] || item.type }}</span>
+              <span v-if="isEquipmentType(item.type) && item.quality !== undefined && item.quality > 0" class="opacity-70">
+                • {{ getQualityName(item.quality) }}
+              </span>
+              <span v-if="item.setName" class="text-purple-400">
+                [{{ item.setName }}]
+              </span>
+            </div>
           </div>
           <div v-if="item.quantity > 1" class="text-xs text-gray-400 bg-gray-700 px-2 py-0.5 rounded">
             x{{ item.quantity }}
@@ -135,8 +168,18 @@ const getIcon = (item: InventoryItemDto): string => {
         >
           <span class="text-lg">{{ getIcon(item) }}</span>
           <div class="flex-1 min-w-0">
-            <div class="text-sm text-white truncate">{{ item.name }}</div>
-            <div class="text-xs text-green-400">{{ item.equippedSlot || typeNames[item.type] || item.type }}</div>
+            <div
+              class="text-sm truncate font-medium"
+              :style="isEquipmentType(item.type) ? getQualityStyle(item.quality) : { color: 'white' }"
+            >
+              {{ item.name }}
+            </div>
+            <div class="text-xs text-green-400 flex items-center gap-1">
+              <span>{{ item.equippedSlot || typeNames[item.type] || item.type }}</span>
+              <span v-if="item.setName" class="text-purple-400">
+                [{{ item.setName }}]
+              </span>
+            </div>
           </div>
         </div>
       </template>
@@ -150,9 +193,27 @@ const getIcon = (item: InventoryItemDto): string => {
       <div class="flex items-center gap-2 mb-2">
         <span class="text-2xl">{{ getIcon(selectedItem) }}</span>
         <div>
-          <div class="text-white font-bold">{{ selectedItem.name }}</div>
-          <div class="text-xs text-gray-400">{{ typeNames[selectedItem.type] || selectedItem.type }}</div>
+          <div
+            class="font-bold"
+            :style="isEquipmentType(selectedItem.type) ? getQualityStyle(selectedItem.quality) : { color: 'white' }"
+          >
+            {{ selectedItem.name }}
+          </div>
+          <div class="text-xs text-gray-400 flex items-center gap-1">
+            <span>{{ typeNames[selectedItem.type] || selectedItem.type }}</span>
+            <span
+              v-if="isEquipmentType(selectedItem.type) && selectedItem.quality !== undefined"
+              :style="getQualityStyle(selectedItem.quality)"
+            >
+              • {{ getQualityName(selectedItem.quality) }}
+            </span>
+          </div>
         </div>
+      </div>
+
+      <!-- 套裝資訊 -->
+      <div v-if="selectedItem.setName" class="text-xs text-purple-400 mb-2">
+        🔗 套裝: {{ selectedItem.setName }}
       </div>
 
       <p v-if="selectedItem.description" class="text-xs text-gray-400 mb-2">

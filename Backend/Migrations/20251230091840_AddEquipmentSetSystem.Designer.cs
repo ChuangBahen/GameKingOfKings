@@ -3,6 +3,7 @@ using System;
 using KingOfKings.Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace KingOfKings.Backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251230091840_AddEquipmentSetSystem")]
+    partial class AddEquipmentSetSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
@@ -75,29 +78,6 @@ namespace KingOfKings.Backend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("EquipmentSets");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Description = "新手入門套裝，由史萊姆王的凝膠製成",
-                            Name = "史萊姆套裝",
-                            TotalPieces = 3
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Description = "敏捷型套裝，適合獵人和遊俠",
-                            Name = "森林獵人套裝",
-                            TotalPieces = 4
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Description = "魔法型套裝，蘊含死亡的力量",
-                            Name = "死靈法師套裝",
-                            TotalPieces = 4
-                        });
                 });
 
             modelBuilder.Entity("KingOfKings.Backend.Models.InventoryItem", b =>
@@ -144,9 +124,6 @@ namespace KingOfKings.Backend.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("EquipmentSetId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("EquipmentSlot")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
@@ -350,138 +327,6 @@ namespace KingOfKings.Backend.Migrations
                             Quality = 0,
                             RequiredLevel = 8,
                             Type = 2
-                        },
-                        new
-                        {
-                            Id = 101,
-                            Description = "由史萊姆凝膠製成的頭盔，意外地堅韌。",
-                            EquipmentSlot = 2,
-                            Name = "史萊姆頭盔",
-                            PropertiesJson = "{\"Def\":3,\"Con\":1}",
-                            Quality = 1,
-                            RequiredLevel = 3,
-                            SetId = 1,
-                            Type = 1
-                        },
-                        new
-                        {
-                            Id = 102,
-                            Description = "彈性十足的護甲，能吸收部分衝擊。",
-                            EquipmentSlot = 3,
-                            Name = "史萊姆護甲",
-                            PropertiesJson = "{\"Def\":5,\"MaxHp\":10}",
-                            Quality = 1,
-                            RequiredLevel = 3,
-                            SetId = 1,
-                            Type = 1
-                        },
-                        new
-                        {
-                            Id = 103,
-                            Description = "黏稠但靈活的護手。",
-                            EquipmentSlot = 4,
-                            Name = "史萊姆護手",
-                            PropertiesJson = "{\"Def\":2,\"Dex\":1}",
-                            Quality = 1,
-                            RequiredLevel = 3,
-                            SetId = 1,
-                            Type = 1
-                        },
-                        new
-                        {
-                            Id = 104,
-                            Description = "森林獵人戴的皮帽，增強感知能力。",
-                            EquipmentSlot = 2,
-                            Name = "獵人皮帽",
-                            PropertiesJson = "{\"Def\":4,\"Dex\":2}",
-                            Quality = 2,
-                            RequiredLevel = 6,
-                            SetId = 2,
-                            Type = 1
-                        },
-                        new
-                        {
-                            Id = 105,
-                            Description = "輕便的皮革護甲，不妨礙行動。",
-                            EquipmentSlot = 3,
-                            Name = "獵人皮甲",
-                            PropertiesJson = "{\"Def\":8,\"Dex\":3}",
-                            Quality = 2,
-                            RequiredLevel = 6,
-                            SetId = 2,
-                            Type = 1
-                        },
-                        new
-                        {
-                            Id = 106,
-                            Description = "增強握力的皮革手套。",
-                            EquipmentSlot = 4,
-                            Name = "獵人手套",
-                            PropertiesJson = "{\"Def\":3,\"Atk\":2}",
-                            Quality = 2,
-                            RequiredLevel = 6,
-                            SetId = 2,
-                            Type = 1
-                        },
-                        new
-                        {
-                            Id = 107,
-                            Description = "安靜輕便的長靴，適合潛行。",
-                            EquipmentSlot = 5,
-                            Name = "獵人長靴",
-                            PropertiesJson = "{\"Def\":4,\"Dex\":2}",
-                            Quality = 2,
-                            RequiredLevel = 6,
-                            SetId = 2,
-                            Type = 1
-                        },
-                        new
-                        {
-                            Id = 108,
-                            Description = "散發死亡氣息的兜帽，增強魔力。",
-                            EquipmentSlot = 2,
-                            Name = "亡靈兜帽",
-                            PropertiesJson = "{\"Def\":3,\"Int\":5,\"MaxMp\":20}",
-                            Quality = 3,
-                            RequiredLevel = 12,
-                            SetId = 3,
-                            Type = 1
-                        },
-                        new
-                        {
-                            Id = 109,
-                            Description = "死靈法師的長袍，蘊含黑暗能量。",
-                            EquipmentSlot = 3,
-                            Name = "亡靈長袍",
-                            PropertiesJson = "{\"Def\":6,\"Int\":8,\"Wis\":5}",
-                            Quality = 3,
-                            RequiredLevel = 12,
-                            SetId = 3,
-                            Type = 1
-                        },
-                        new
-                        {
-                            Id = 110,
-                            Description = "骨製護腕，增強施法能力。",
-                            EquipmentSlot = 4,
-                            Name = "亡靈護腕",
-                            PropertiesJson = "{\"Def\":2,\"Int\":3,\"MaxMp\":15}",
-                            Quality = 3,
-                            RequiredLevel = 12,
-                            SetId = 3,
-                            Type = 1
-                        },
-                        new
-                        {
-                            Id = 111,
-                            Description = "漂浮般輕盈的靴子。",
-                            EquipmentSlot = 5,
-                            Name = "亡靈之靴",
-                            PropertiesJson = "{\"Def\":4,\"Int\":4,\"Wis\":3}",
-                            Quality = 3,
-                            RequiredLevel = 12,
-                            SetId = 3,
-                            Type = 1
                         });
                 });
 
@@ -717,8 +562,6 @@ namespace KingOfKings.Backend.Migrations
                             CurrentHp = 30,
                             Defense = 2,
                             Description = "一團軟趴趴的黏液生物，對新手來說是很好的練習對象。",
-                            DroppableEquipmentIds = "[101,102,103]",
-                            EquipmentDropRate = 0.5,
                             ExpReward = 10,
                             IsBoss = false,
                             Level = 1,
@@ -733,8 +576,6 @@ namespace KingOfKings.Backend.Migrations
                             CurrentHp = 20,
                             Defense = 1,
                             Description = "敏捷的小型齧齒動物，雖然弱小但攻擊迅速。",
-                            DroppableEquipmentIds = "[101,102,103]",
-                            EquipmentDropRate = 0.5,
                             ExpReward = 8,
                             IsBoss = false,
                             Level = 2,
@@ -749,8 +590,6 @@ namespace KingOfKings.Backend.Migrations
                             CurrentHp = 100,
                             Defense = 3,
                             Description = "史萊姆族群的首領，體型巨大且極具威脅性。",
-                            DroppableEquipmentIds = "[101,102,103]",
-                            EquipmentDropRate = 50.0,
                             ExpReward = 80,
                             IsBoss = true,
                             Level = 5,
@@ -765,8 +604,6 @@ namespace KingOfKings.Backend.Migrations
                             CurrentHp = 60,
                             Defense = 4,
                             Description = "森林中的掠食者，成群結隊狩獵，牙齒鋒利無比。",
-                            DroppableEquipmentIds = "[104,105,106,107]",
-                            EquipmentDropRate = 0.5,
                             ExpReward = 25,
                             IsBoss = false,
                             Level = 5,
@@ -781,8 +618,6 @@ namespace KingOfKings.Backend.Migrations
                             CurrentHp = 50,
                             Defense = 3,
                             Description = "狡猾的小型類人生物，喜歡在森林中埋伏旅人。",
-                            DroppableEquipmentIds = "[104,105,106,107]",
-                            EquipmentDropRate = 1.0,
                             ExpReward = 30,
                             IsBoss = false,
                             Level = 6,
@@ -797,8 +632,6 @@ namespace KingOfKings.Backend.Migrations
                             CurrentHp = 200,
                             Defense = 8,
                             Description = "哥布林部落的首領，身披戰甲，揮舞著巨斧，是森林中最危險的存在。",
-                            DroppableEquipmentIds = "[104,105,106,107]",
-                            EquipmentDropRate = 70.0,
                             ExpReward = 150,
                             IsBoss = true,
                             Level = 10,
@@ -813,8 +646,6 @@ namespace KingOfKings.Backend.Migrations
                             CurrentHp = 80,
                             Defense = 6,
                             Description = "被黑暗魔法復活的亡者骨骸，永不疲倦地守護著礦坑。",
-                            DroppableEquipmentIds = "[108,109,110,111]",
-                            EquipmentDropRate = 1.0,
                             ExpReward = 45,
                             IsBoss = false,
                             Level = 10,
@@ -829,8 +660,6 @@ namespace KingOfKings.Backend.Migrations
                             CurrentHp = 100,
                             Defense = 8,
                             Description = "腐爛的屍體被邪惡力量驅動，行動遲緩但力量驚人。",
-                            DroppableEquipmentIds = "[108,109,110,111]",
-                            EquipmentDropRate = 2.0,
                             ExpReward = 55,
                             IsBoss = false,
                             Level = 12,
@@ -845,8 +674,6 @@ namespace KingOfKings.Backend.Migrations
                             CurrentHp = 300,
                             Defense = 10,
                             Description = "操控亡靈的邪惡法師，是礦坑中所有不死生物的主人。",
-                            DroppableEquipmentIds = "[108,109,110,111]",
-                            EquipmentDropRate = 100.0,
                             ExpReward = 250,
                             IsBoss = true,
                             Level = 15,
@@ -960,72 +787,6 @@ namespace KingOfKings.Backend.Migrations
                     b.HasIndex("SetId");
 
                     b.ToTable("SetBonuses");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            BonusJson = "{\"MaxHp\":20}",
-                            Description = "HP+20",
-                            RequiredPieces = 2,
-                            SetId = 1
-                        },
-                        new
-                        {
-                            Id = 2,
-                            BonusJson = "{\"MaxMp\":15,\"Str\":2,\"Dex\":2,\"Int\":2,\"Wis\":2,\"Con\":2}",
-                            Description = "MP+15, 全屬性+2",
-                            RequiredPieces = 3,
-                            SetId = 1
-                        },
-                        new
-                        {
-                            Id = 3,
-                            BonusJson = "{\"Atk\":5}",
-                            Description = "攻擊+5",
-                            RequiredPieces = 2,
-                            SetId = 2
-                        },
-                        new
-                        {
-                            Id = 4,
-                            BonusJson = "{\"Dex\":5}",
-                            Description = "敏捷+5",
-                            RequiredPieces = 3,
-                            SetId = 2
-                        },
-                        new
-                        {
-                            Id = 5,
-                            BonusJson = "{\"Atk\":10,\"CritRate\":5}",
-                            Description = "攻擊+10, 暴擊+5%",
-                            RequiredPieces = 4,
-                            SetId = 2
-                        },
-                        new
-                        {
-                            Id = 6,
-                            BonusJson = "{\"Int\":8}",
-                            Description = "智力+8",
-                            RequiredPieces = 2,
-                            SetId = 3
-                        },
-                        new
-                        {
-                            Id = 7,
-                            BonusJson = "{\"MaxMp\":50}",
-                            Description = "MP+50",
-                            RequiredPieces = 3,
-                            SetId = 3
-                        },
-                        new
-                        {
-                            Id = 8,
-                            BonusJson = "{\"MagicDamage\":15}",
-                            Description = "魔法傷害+15%",
-                            RequiredPieces = 4,
-                            SetId = 3
-                        });
                 });
 
             modelBuilder.Entity("KingOfKings.Backend.Models.Skill", b =>

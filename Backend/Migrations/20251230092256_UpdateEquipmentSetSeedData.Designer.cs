@@ -3,6 +3,7 @@ using System;
 using KingOfKings.Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace KingOfKings.Backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251230092256_UpdateEquipmentSetSeedData")]
+    partial class UpdateEquipmentSetSeedData
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
@@ -144,9 +147,6 @@ namespace KingOfKings.Backend.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("EquipmentSetId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("EquipmentSlot")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
@@ -355,7 +355,6 @@ namespace KingOfKings.Backend.Migrations
                         {
                             Id = 101,
                             Description = "由史萊姆凝膠製成的頭盔，意外地堅韌。",
-                            EquipmentSlot = 2,
                             Name = "史萊姆頭盔",
                             PropertiesJson = "{\"Def\":3,\"Con\":1}",
                             Quality = 1,
@@ -367,7 +366,6 @@ namespace KingOfKings.Backend.Migrations
                         {
                             Id = 102,
                             Description = "彈性十足的護甲，能吸收部分衝擊。",
-                            EquipmentSlot = 3,
                             Name = "史萊姆護甲",
                             PropertiesJson = "{\"Def\":5,\"MaxHp\":10}",
                             Quality = 1,
@@ -379,7 +377,6 @@ namespace KingOfKings.Backend.Migrations
                         {
                             Id = 103,
                             Description = "黏稠但靈活的護手。",
-                            EquipmentSlot = 4,
                             Name = "史萊姆護手",
                             PropertiesJson = "{\"Def\":2,\"Dex\":1}",
                             Quality = 1,
@@ -391,7 +388,6 @@ namespace KingOfKings.Backend.Migrations
                         {
                             Id = 104,
                             Description = "森林獵人戴的皮帽，增強感知能力。",
-                            EquipmentSlot = 2,
                             Name = "獵人皮帽",
                             PropertiesJson = "{\"Def\":4,\"Dex\":2}",
                             Quality = 2,
@@ -403,7 +399,6 @@ namespace KingOfKings.Backend.Migrations
                         {
                             Id = 105,
                             Description = "輕便的皮革護甲，不妨礙行動。",
-                            EquipmentSlot = 3,
                             Name = "獵人皮甲",
                             PropertiesJson = "{\"Def\":8,\"Dex\":3}",
                             Quality = 2,
@@ -415,7 +410,6 @@ namespace KingOfKings.Backend.Migrations
                         {
                             Id = 106,
                             Description = "增強握力的皮革手套。",
-                            EquipmentSlot = 4,
                             Name = "獵人手套",
                             PropertiesJson = "{\"Def\":3,\"Atk\":2}",
                             Quality = 2,
@@ -427,7 +421,6 @@ namespace KingOfKings.Backend.Migrations
                         {
                             Id = 107,
                             Description = "安靜輕便的長靴，適合潛行。",
-                            EquipmentSlot = 5,
                             Name = "獵人長靴",
                             PropertiesJson = "{\"Def\":4,\"Dex\":2}",
                             Quality = 2,
@@ -439,7 +432,6 @@ namespace KingOfKings.Backend.Migrations
                         {
                             Id = 108,
                             Description = "散發死亡氣息的兜帽，增強魔力。",
-                            EquipmentSlot = 2,
                             Name = "亡靈兜帽",
                             PropertiesJson = "{\"Def\":3,\"Int\":5,\"MaxMp\":20}",
                             Quality = 3,
@@ -451,7 +443,6 @@ namespace KingOfKings.Backend.Migrations
                         {
                             Id = 109,
                             Description = "死靈法師的長袍，蘊含黑暗能量。",
-                            EquipmentSlot = 3,
                             Name = "亡靈長袍",
                             PropertiesJson = "{\"Def\":6,\"Int\":8,\"Wis\":5}",
                             Quality = 3,
@@ -463,7 +454,6 @@ namespace KingOfKings.Backend.Migrations
                         {
                             Id = 110,
                             Description = "骨製護腕，增強施法能力。",
-                            EquipmentSlot = 4,
                             Name = "亡靈護腕",
                             PropertiesJson = "{\"Def\":2,\"Int\":3,\"MaxMp\":15}",
                             Quality = 3,
@@ -475,7 +465,6 @@ namespace KingOfKings.Backend.Migrations
                         {
                             Id = 111,
                             Description = "漂浮般輕盈的靴子。",
-                            EquipmentSlot = 5,
                             Name = "亡靈之靴",
                             PropertiesJson = "{\"Def\":4,\"Int\":4,\"Wis\":3}",
                             Quality = 3,

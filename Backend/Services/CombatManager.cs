@@ -316,12 +316,85 @@ public class CombatManager : ICombatManager
                 }
             }
 
+            // Process equipment drop (US1)
+            // 效能監控: 掉落計算開始 (目標 <50ms)
+            var dropStartTime = DateTime.UtcNow;
+            if (DetermineEquipmentDrop(monster))
+            {
+                var droppedEquipment = await SelectDroppableEquipmentAsync(db, monster);
+                if (droppedEquipment != null)
+                {
+                    // 檢查背包是否已滿
+                    int nextSlot = await GetNextInventorySlot(db, player.Id);
+                    if (nextSlot == -1)
+                    {
+                        // 背包已滿
+                        result.Message += $"\n<span class='text-red-400'>⚠️ 背包已滿，無法拾取 {droppedEquipment.Name}！</span>";
+                    }
+                    else
+                    {
+                        // 決定品質 (如果裝備本身沒有設定品質，則隨機決定)
+                        var quality = droppedEquipment.Quality != ItemQuality.Common || droppedEquipment.SetId.HasValue
+                            ? droppedEquipment.Quality  // 使用裝備預設品質
+                            : DetermineItemQuality(monster.IsBoss);  // 隨機決定品質
+
+                        // 加入玩家背包
+                        var newItem = new InventoryItem
+                        {
+                            Id = Guid.NewGuid(),
+                            PlayerId = player.Id,
+                            ItemId = droppedEquipment.Id,
+                            Quantity = 1,
+                            SlotIndex = nextSlot
+                        };
+                        db.InventoryItems.Add(newItem);
+
+                        // 記錄掉落
+                        var qualityColorClass = GetQualityColorClass(quality);
+                        var qualityName = GetQualityName(quality);
+                        var setInfo = droppedEquipment.EquipmentSet != null
+                            ? $" [{droppedEquipment.EquipmentSet.Name}]"
+                            : "";
+
+                        result.Loot.Add(new LootDrop
+                        {
+                            ItemId = droppedEquipment.Id,
+                            ItemName = $"⚔️ {droppedEquipment.Name}{setInfo}",
+                            Quantity = 1
+                        });
+
+                        Console.WriteLine($"[Equipment Drop] Player {player.Name} got {droppedEquipment.Name} ({qualityName}) from {monster.Name}");
+                    }
+                }
+            }
+
+            // 效能監控: 記錄掉落計算時間 (目標 <50ms)
+            var dropElapsed = (DateTime.UtcNow - dropStartTime).TotalMilliseconds;
+            if (dropElapsed > 50)
+            {
+                Console.WriteLine($"[Performance Warning] Equipment drop calculation took {dropElapsed:F2}ms (target <50ms)");
+            }
+            else
+            {
+                Console.WriteLine($"[Performance] Equipment drop calculation: {dropElapsed:F2}ms");
+            }
+
             result.Message += $"\n<span class='text-yellow-400'>🎉 打倒了 {monster.Name}！獲得 {monster.ExpReward} 經驗值</span>";
 
-            if (result.Loot.Any())
+            // 顯示掉落物品訊息
+            var regularLoot = result.Loot.Where(l => !l.ItemName.StartsWith("⚔️")).ToList();
+            var equipmentLoot = result.Loot.Where(l => l.ItemName.StartsWith("⚔️")).ToList();
+
+            if (regularLoot.Any())
             {
                 result.Message += "\n<span class='text-cyan-400'>📦 掉落物品：" +
-                    string.Join("、", result.Loot.Select(l => $"{l.ItemName} x{l.Quantity}")) + "</span>";
+                    string.Join("、", regularLoot.Select(l => $"{l.ItemName} x{l.Quantity}")) + "</span>";
+            }
+
+            if (equipmentLoot.Any())
+            {
+                result.Message += "\n<span class='text-yellow-300'>✨ 裝備掉落：" +
+                    string.Join("、", equipmentLoot.Select(l => l.ItemName.Replace("⚔️ ", ""))) + "</span>";
             }
 
             result.CombatEnded = true;
@@ -425,14 +498,15 @@ public class CombatManager : ICombatManager
     }
 
     /// <summary>
-    /// 計算玩家裝備的總屬性加成
+    /// 計算玩家裝備的總屬性加成（包含套裝加成）
     /// </summary>
     private async Task<Dictionary<string, int>> GetEquipmentBonusesAsync(AppDbContext db, Guid playerId)
     {
         var bonuses = new Dictionary<string, int>
         {
             { "Atk", 0 }, { "Def", 0 }, { "Str", 0 },
-            { "Dex", 0 }, { "Int", 0 }, { "Wis", 0 }, { "Con", 0 }
+            { "Dex", 0 }, { "Int", 0 }, { "Wis", 0 }, { "Con", 0 },
+            { "MaxHp", 0 }, { "MaxMp", 0 }
         };
 
         var equippedItems = await db.InventoryItems
@@ -455,18 +529,7 @@ public class CombatManager : ICombatManager
                 foreach (var kvp in props)
                 {
                     // 標準化屬性名稱
-                    var key = kvp.Key.ToLower() switch
-                    {
-                        "atk" or "attack" => "Atk",
-                        "def" or "defense" => "Def",
-                        "str" or "strength" => "Str",
-                        "dex" or "dexterity" => "Dex",
-                        "int" or "intelligence" => "Int",
-                        "wis" or "wisdom" => "Wis",
-                        "con" or "constitution" => "Con",
-                        _ => kvp.Key
-                    };
-
+                    var key = NormalizeStatKey(kvp.Key);
                     if (bonuses.ContainsKey(key))
                         bonuses[key] += kvp.Value;
                 }
@@ -477,7 +540,65 @@ public class CombatManager : ICombatManager
             }
         }
 
+        // 計算套裝加成 (US4)
+        var setBonusService = _serviceProvider.GetService<ISetBonusService>();
+        if (setBonusService != null)
+        {
+            try
+            {
+                // 效能監控: 套裝加成計算開始 (目標 <100ms)
+                var setBonusStartTime = DateTime.UtcNow;
+
+                var setBonuses = await setBonusService.CalculateSetBonusesAsync(playerId);
+                foreach (var kvp in setBonuses)
+                {
+                    var key = NormalizeStatKey(kvp.Key);
+                    if (bonuses.ContainsKey(key))
+                        bonuses[key] += (int)kvp.Value;
+                    else
+                        bonuses[key] = (int)kvp.Value;
+                }
+
+                // 效能監控: 記錄套裝加成計算時間 (目標 <100ms)
+                var setBonusElapsed = (DateTime.UtcNow - setBonusStartTime).TotalMilliseconds;
+                if (setBonusElapsed > 100)
+                {
+                    Console.WriteLine($"[Performance Warning] Set bonus calculation took {setBonusElapsed:F2}ms (target <100ms)");
+                }
+                else
+                {
+                    Console.WriteLine($"[Performance] Set bonus calculation: {setBonusElapsed:F2}ms");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SetBonus] Error calculating set bonuses: {ex.Message}");
+            }
+        }
+
         return bonuses;
+    }
+
+    /// <summary>
+    /// 標準化屬性名稱
+    /// </summary>
+    private static string NormalizeStatKey(string key)
+    {
+        return key.ToLower() switch
+        {
+            "atk" or "attack" => "Atk",
+            "def" or "defense" => "Def",
+            "str" or "strength" => "Str",
+            "dex" or "dexterity" => "Dex",
+            "int" or "intelligence" => "Int",
+            "wis" or "wisdom" => "Wis",
+            "con" or "constitution" => "Con",
+            "maxhp" or "hp" => "MaxHp",
+            "maxmp" or "mp" => "MaxMp",
+            "critrate" => "CritRate",
+            "magicdamage" => "MagicDamage",
+            _ => key
+        };
     }
 
     /// <summary>
@@ -659,4 +780,129 @@ public class CombatManager : ICombatManager
 
         return (false, "");
     }
+
+    #region Equipment Drop System (US1)
+
+    /// <summary>
+    /// 取得怪物的裝備掉落率
+    /// 普通怪: Lv1-5 = 0.5%, Lv6-10 = 1%, Lv11+ = 2%
+    /// Boss: 使用 Monster.EquipmentDropRate (30-100%)
+    /// </summary>
+    private double GetEquipmentDropRate(Monster monster)
+    {
+        // 優先使用怪物設定的掉落率
+        if (monster.EquipmentDropRate.HasValue)
+            return monster.EquipmentDropRate.Value;
+
+        // 根據等級計算預設掉落率
+        if (monster.IsBoss)
+            return 50.0; // Boss 預設 50%
+
+        return monster.Level switch
+        {
+            <= 5 => 0.5,
+            <= 10 => 1.0,
+            _ => 2.0
+        };
+    }
+
+    /// <summary>
+    /// 判定是否掉落裝備
+    /// </summary>
+    private bool DetermineEquipmentDrop(Monster monster)
+    {
+        double dropRate = GetEquipmentDropRate(monster);
+        return _random.NextDouble() * 100 < dropRate;
+    }
+
+    /// <summary>
+    /// 從怪物可掉落的裝備中隨機選擇一件
+    /// </summary>
+    private async Task<Item?> SelectDroppableEquipmentAsync(AppDbContext db, Monster monster)
+    {
+        // 檢查怪物是否有設定可掉落裝備
+        if (string.IsNullOrEmpty(monster.DroppableEquipmentIds))
+            return null;
+
+        try
+        {
+            var equipmentIds = JsonSerializer.Deserialize<List<int>>(monster.DroppableEquipmentIds);
+            if (equipmentIds == null || equipmentIds.Count == 0)
+                return null;
+
+            // 隨機選擇一件裝備
+            int selectedId = equipmentIds[_random.Next(equipmentIds.Count)];
+
+            return await db.Items
+                .Include(i => i.EquipmentSet)
+                .FirstOrDefaultAsync(i => i.Id == selectedId);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 決定掉落裝備的品質
+    /// 普通怪: 70% Common, 25% Uncommon, 4.5% Rare, 0.5% Legendary
+    /// Boss: 10% Common, 30% Uncommon, 45% Rare, 15% Legendary
+    /// </summary>
+    private ItemQuality DetermineItemQuality(bool isBoss)
+    {
+        double roll = _random.NextDouble() * 100;
+
+        if (isBoss)
+        {
+            return roll switch
+            {
+                < 10 => ItemQuality.Common,
+                < 40 => ItemQuality.Uncommon,
+                < 85 => ItemQuality.Rare,
+                _ => ItemQuality.Legendary
+            };
+        }
+        else
+        {
+            return roll switch
+            {
+                < 70 => ItemQuality.Common,
+                < 95 => ItemQuality.Uncommon,
+                < 99.5 => ItemQuality.Rare,
+                _ => ItemQuality.Legendary
+            };
+        }
+    }
+
+    /// <summary>
+    /// 取得品質對應的顏色 CSS class
+    /// </summary>
+    private static string GetQualityColorClass(ItemQuality quality)
+    {
+        return quality switch
+        {
+            ItemQuality.Common => "text-gray-400",
+            ItemQuality.Uncommon => "text-green-400",
+            ItemQuality.Rare => "text-blue-400",
+            ItemQuality.Legendary => "text-purple-400",
+            _ => "text-gray-400"
+        };
+    }
+
+    /// <summary>
+    /// 取得品質對應的中文名稱
+    /// </summary>
+    private static string GetQualityName(ItemQuality quality)
+    {
+        return quality switch
+        {
+            ItemQuality.Common => "普通",
+            ItemQuality.Uncommon => "精良",
+            ItemQuality.Rare => "稀有",
+            ItemQuality.Legendary => "傳說",
+            _ => "普通"
+        };
+    }
+
+    #endregion
 }

@@ -139,12 +139,20 @@ const skillTypeNames: Record<string, string> = {
         <span class="text-2xl" :class="{ 'grayscale': !selectedSkill.isLearned }">
           {{ getSkillIcon(selectedSkill.type) }}
         </span>
-        <div>
+        <div class="flex-1">
           <div class="text-white font-bold">{{ selectedSkill.name }}</div>
           <div class="text-xs text-gray-400">
             {{ skillTypeNames[selectedSkill.type?.toLowerCase()] || selectedSkill.type }}
           </div>
         </div>
+        <!-- 關閉按鈕 -->
+        <button
+          @click.stop="selectedSkill = null"
+          class="text-gray-400 hover:text-white transition-colors p-1"
+          title="關閉"
+        >
+          ✕
+        </button>
       </div>
 
       <p v-if="selectedSkill.description" class="text-xs text-gray-400 mb-2">

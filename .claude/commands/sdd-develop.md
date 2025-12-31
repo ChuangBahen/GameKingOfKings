@@ -123,6 +123,16 @@ mkdir -p .claude/shared/designs
 
 ### 🚨 必須執行的動作：
 
+**0️⃣ 載入 Agent 定義（必須先執行！）**
+```bash
+cat .claude/agents/game-designer.md
+```
+⚠️ 你必須先讀取 Agent 定義檔，了解 game-designer 的：
+- 專長領域
+- 工作流程
+- 輸出模板
+- 設計原則
+
 **1️⃣ 讀取 constitution（必須）**
 ```bash
 cat .specify/memory/constitution.md
@@ -133,7 +143,7 @@ cat .specify/memory/constitution.md
 cat .claude/shared/game-design-doc.md
 ```
 
-**3️⃣ 以 game-designer 角色進行設計**
+**3️⃣ 依照 game-designer Agent 的指引進行設計**
 
 思考並記錄：
 - 功能定位
@@ -234,6 +244,7 @@ cat .claude/shared/game-design-doc.md
 ```
 
 ### ✅ 完成檢查：
+- [ ] 已讀取 `.claude/agents/game-designer.md` ← Agent 定義
 - [ ] 檔案已建立
 - [ ] 包含「給 SpecKit 的輸入」區塊
 - [ ] 區塊內容完整
@@ -241,6 +252,7 @@ cat .claude/shared/game-design-doc.md
 ### 完成輸出：
 ```
 ✅ Step 1: Design 完成 (by game-designer 🎮)
+   🤖 Agent 載入: .claude/agents/game-designer.md ✓
 📄 檔案: .claude/shared/designs/[feature]-design.md ✓
 📊 機制數: X 個
 📊 數值參數: X 個
@@ -256,6 +268,19 @@ cat .claude/shared/game-design-doc.md
 ### SpecKit 指令：`/speckit.specify`
 
 ### 🚨🚨🚨 必須執行的動作（按順序，不可省略）：
+
+---
+
+### 0️⃣ 載入 Agent 定義（必須先執行！）
+
+```bash
+cat .claude/agents/spec-writer.md
+```
+⚠️ 你必須先讀取 Agent 定義檔，了解 spec-writer 的：
+- 專長領域
+- 用戶故事撰寫規範
+- 驗收標準格式
+- 審查原則
 
 ---
 
@@ -369,6 +394,7 @@ cat .claude/shared/designs/[feature]-design.md
 ---
 
 ### ✅ 完成檢查：
+- [ ] 已讀取 `.claude/agents/spec-writer.md` ← Agent 定義
 - [ ] 已執行 `cat` 讀取設計文件
 - [ ] 已找到「給 SpecKit 的輸入」區塊
 - [ ] 已執行 `/speckit.specify` 並帶入完整內容
@@ -377,6 +403,7 @@ cat .claude/shared/designs/[feature]-design.md
 ### 完成輸出：
 ```
 ✅ Step 2: Specify 完成
+   🤖 Agent 載入: .claude/agents/spec-writer.md ✓
    📝 Agent: spec-writer
    🔧 指令: /speckit.specify ✓
    📖 讀取: [feature]-design.md ✓
@@ -417,6 +444,15 @@ cat .claude/shared/designs/[feature]-design.md
 
 ### 🚨 必須執行的動作：
 
+**0️⃣ 載入 Agent 定義（必須先執行！）**
+```bash
+cat .claude/agents/tech-planner.md
+cat .claude/agents/architect.md
+```
+⚠️ 你必須先讀取這兩個 Agent 定義檔，了解：
+- tech-planner: 技術選型、實作計畫
+- architect: 架構設計、設計模式、SOLID 原則
+
 **1️⃣ 讀取規格文件（必須）**
 ```bash
 cat .specify/specs/*/spec.md
@@ -439,6 +475,8 @@ cat .specify/specs/*/spec.md
 ```
 
 ### ✅ 完成檢查：
+- [ ] 已讀取 `.claude/agents/tech-planner.md` ← Agent 定義
+- [ ] 已讀取 `.claude/agents/architect.md` ← Agent 定義
 - [ ] 已讀取 spec.md
 - [ ] 已執行 `/speckit.plan`
 - [ ] plan.md 已產生
@@ -446,6 +484,7 @@ cat .specify/specs/*/spec.md
 ### 完成輸出：
 ```
 ✅ Step 4: Plan 完成
+   🤖 Agent 載入: tech-planner.md, architect.md ✓
    🔧 Agent: tech-planner + architect
    📖 讀取: spec.md ✓
 📄 產出: plan.md, research.md ✓
@@ -461,6 +500,15 @@ cat .specify/specs/*/spec.md
 
 ### 🚨 必須執行的動作：
 
+**0️⃣ 載入 Agent 定義（必須先執行！）**
+```bash
+cat .claude/agents/task-breakdown.md
+```
+⚠️ 你必須先讀取 Agent 定義檔，了解 task-breakdown 的：
+- 任務分解原則
+- 依賴分析方法
+- 任務粒度標準
+
 **1️⃣ 讀取計畫文件（必須）**
 ```bash
 cat .specify/specs/*/plan.md
@@ -472,6 +520,7 @@ cat .specify/specs/*/plan.md
 ```
 
 ### ✅ 完成檢查：
+- [ ] 已讀取 `.claude/agents/task-breakdown.md` ← Agent 定義
 - [ ] 已讀取 plan.md
 - [ ] 已執行 `/speckit.tasks`
 - [ ] tasks.md 已產生
@@ -479,6 +528,7 @@ cat .specify/specs/*/plan.md
 ### 完成輸出：
 ```
 ✅ Step 5: Tasks 完成
+   🤖 Agent 載入: task-breakdown.md ✓
    📋 Agent: task-breakdown
    📖 讀取: plan.md ✓
 📄 產出: tasks.md ✓
@@ -494,6 +544,15 @@ cat .specify/specs/*/plan.md
 
 ### 🚨 必須執行的動作：
 
+**0️⃣ 載入 Agent 定義（必須先執行！）**
+```bash
+cat .claude/agents/implementer.md
+cat .claude/agents/qa-tester.md
+```
+⚠️ 你必須先讀取這兩個 Agent 定義檔，了解：
+- implementer: 程式碼規範、實作原則
+- qa-tester: TDD 流程、測試撰寫規範
+
 **1️⃣ 讀取任務清單（必須）**
 ```bash
 cat .specify/specs/*/tasks.md
@@ -505,6 +564,8 @@ cat .specify/specs/*/tasks.md
 ```
 
 ### ✅ 完成檢查：
+- [ ] 已讀取 `.claude/agents/implementer.md` ← Agent 定義
+- [ ] 已讀取 `.claude/agents/qa-tester.md` ← Agent 定義
 - [ ] 已讀取 tasks.md
 - [ ] 已執行 `/speckit.implement`
 - [ ] 程式碼和測試已產生
@@ -512,6 +573,7 @@ cat .specify/specs/*/tasks.md
 ### 完成輸出：
 ```
 ✅ Step 6: Implement 完成
+   🤖 Agent 載入: implementer.md, qa-tester.md ✓
    💻🧪 Agent: implementer + qa-tester
    📖 讀取: tasks.md ✓
 📄 產出: 程式碼 + 測試 ✓
@@ -525,14 +587,30 @@ cat .specify/specs/*/tasks.md
 ### Agent 角色：✅ quality-reviewer
 ### SpecKit 指令：`/speckit.analyze`
 
-### 執行動作：
+### 🚨 必須執行的動作：
+
+**0️⃣ 載入 Agent 定義（必須先執行！）**
+```bash
+cat .claude/agents/quality-reviewer.md
+```
+⚠️ 你必須先讀取 Agent 定義檔，了解 quality-reviewer 的：
+- 審查 Checklist
+- 驗收標準
+- 品質指標
+
+**1️⃣ 執行 SpecKit 指令**
 ```
 /speckit.analyze
 ```
 
+### ✅ 完成檢查：
+- [ ] 已讀取 `.claude/agents/quality-reviewer.md` ← Agent 定義
+- [ ] 已執行 `/speckit.analyze`
+
 ### 完成輸出：
 ```
 ✅ Step 7: Analyze 完成
+   🤖 Agent 載入: quality-reviewer.md ✓
    ✅ Agent: quality-reviewer
 
 🎉 SDD 流程完成！
@@ -559,16 +637,16 @@ cat .specify/specs/*/tasks.md
 └── tests/...                   ← Step 6 (qa-tester 🧪)
 
 📊 執行紀錄:
-| Step | Agent | 讀取檔案 | SpecKit 指令 | 產出 |
-|------|-------|---------|-------------|------|
+| Step | Agent 載入 | 讀取檔案 | SpecKit 指令 | 產出 |
+|------|-----------|---------|-------------|------|
 | 0 | - | - | /speckit.constitution | constitution.md |
-| 1 | 🎮 | constitution.md | (手動) | design.md |
-| 2 | 📝 | ⚠️ design.md | /speckit.specify | spec.md |
-| 3 | 📝 | - | /speckit.clarify | - |
-| 4 | 🔧🏗️ | ⚠️ spec.md | /speckit.plan | plan.md |
-| 5 | 📋 | ⚠️ plan.md | /speckit.tasks | tasks.md |
-| 6 | 💻🧪 | ⚠️ tasks.md | /speckit.implement | code |
-| 7 | ✅ | - | /speckit.analyze | report |
+| 1 | 🎮 game-designer.md | constitution.md | (手動) | design.md |
+| 2 | 📝 spec-writer.md | ⚠️ design.md | /speckit.specify | spec.md |
+| 3 | 📝 spec-writer.md | - | /speckit.clarify | - |
+| 4 | 🔧🏗️ tech-planner.md, architect.md | ⚠️ spec.md | /speckit.plan | plan.md |
+| 5 | 📋 task-breakdown.md | ⚠️ plan.md | /speckit.tasks | tasks.md |
+| 6 | 💻🧪 implementer.md, qa-tester.md | ⚠️ tasks.md | /speckit.implement | code |
+| 7 | ✅ quality-reviewer.md | - | /speckit.analyze | report |
 ```
 
 ---

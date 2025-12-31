@@ -70,5 +70,16 @@ namespace KingOfKings.Backend.Models
         /// 怪物的描述或風味文字。
         /// </summary>
         public string Description { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Boss 專用裝備掉落率 (0-100)。
+        /// 普通怪為 null，使用等級公式計算。
+        /// </summary>
+        public double? EquipmentDropRate { get; set; }
+
+        /// <summary>
+        /// 可掉落裝備 ID 清單 (JSON 陣列，e.g., "[101,102,103]")
+        /// </summary>
+        public string? DroppableEquipmentIds { get; set; }
     }
 }

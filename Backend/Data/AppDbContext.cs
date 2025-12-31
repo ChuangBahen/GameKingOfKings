@@ -18,6 +18,8 @@ public class AppDbContext : DbContext
     public DbSet<InventoryItem> InventoryItems { get; set; }
     public DbSet<LootTableEntry> LootTableEntries { get; set; }
     public DbSet<ActiveCombat> ActiveCombats { get; set; }
+    public DbSet<EquipmentSet> EquipmentSets { get; set; }
+    public DbSet<SetBonus> SetBonuses { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -59,21 +61,22 @@ public class AppDbContext : DbContext
         );
 
         // Seed monster templates (怪物模板)
+        // EquipmentDropRate: 普通怪 Lv1-5=0.5%, Lv6-10=1%, Lv11+=2%; Boss=30-100%
         modelBuilder.Entity<Monster>().HasData(
             // Zone 1: 新手村
-            new Monster { Id = 1, Name = "史萊姆", Level = 1, MaxHp = 30, CurrentHp = 30, Attack = 5, Defense = 2, ExpReward = 10, LocationId = 4, IsBoss = false, Description = "一團軟趴趴的黏液生物，對新手來說是很好的練習對象。" },
-            new Monster { Id = 2, Name = "野鼠", Level = 2, MaxHp = 20, CurrentHp = 20, Attack = 8, Defense = 1, ExpReward = 8, LocationId = 4, IsBoss = false, Description = "敏捷的小型齧齒動物，雖然弱小但攻擊迅速。" },
-            new Monster { Id = 3, Name = "史萊姆王", Level = 5, MaxHp = 100, CurrentHp = 100, Attack = 12, Defense = 3, ExpReward = 80, LocationId = 5, IsBoss = true, Description = "史萊姆族群的首領，體型巨大且極具威脅性。" },
+            new Monster { Id = 1, Name = "史萊姆", Level = 1, MaxHp = 30, CurrentHp = 30, Attack = 5, Defense = 2, ExpReward = 10, LocationId = 4, IsBoss = false, Description = "一團軟趴趴的黏液生物，對新手來說是很好的練習對象。", EquipmentDropRate = 0.5, DroppableEquipmentIds = "[101,102,103]" },
+            new Monster { Id = 2, Name = "野鼠", Level = 2, MaxHp = 20, CurrentHp = 20, Attack = 8, Defense = 1, ExpReward = 8, LocationId = 4, IsBoss = false, Description = "敏捷的小型齧齒動物，雖然弱小但攻擊迅速。", EquipmentDropRate = 0.5, DroppableEquipmentIds = "[101,102,103]" },
+            new Monster { Id = 3, Name = "史萊姆王", Level = 5, MaxHp = 100, CurrentHp = 100, Attack = 12, Defense = 3, ExpReward = 80, LocationId = 5, IsBoss = true, Description = "史萊姆族群的首領，體型巨大且極具威脅性。", EquipmentDropRate = 50.0, DroppableEquipmentIds = "[101,102,103]" },
 
             // Zone 2: 低語森林
-            new Monster { Id = 4, Name = "野狼", Level = 5, MaxHp = 60, CurrentHp = 60, Attack = 12, Defense = 4, ExpReward = 25, LocationId = 7, IsBoss = false, Description = "森林中的掠食者，成群結隊狩獵，牙齒鋒利無比。" },
-            new Monster { Id = 5, Name = "哥布林", Level = 6, MaxHp = 50, CurrentHp = 50, Attack = 15, Defense = 3, ExpReward = 30, LocationId = 9, IsBoss = false, Description = "狡猾的小型類人生物，喜歡在森林中埋伏旅人。" },
-            new Monster { Id = 6, Name = "哥布林酋長", Level = 10, MaxHp = 200, CurrentHp = 200, Attack = 25, Defense = 8, ExpReward = 150, LocationId = 10, IsBoss = true, Description = "哥布林部落的首領，身披戰甲，揮舞著巨斧，是森林中最危險的存在。" },
+            new Monster { Id = 4, Name = "野狼", Level = 5, MaxHp = 60, CurrentHp = 60, Attack = 12, Defense = 4, ExpReward = 25, LocationId = 7, IsBoss = false, Description = "森林中的掠食者，成群結隊狩獵，牙齒鋒利無比。", EquipmentDropRate = 0.5, DroppableEquipmentIds = "[104,105,106,107]" },
+            new Monster { Id = 5, Name = "哥布林", Level = 6, MaxHp = 50, CurrentHp = 50, Attack = 15, Defense = 3, ExpReward = 30, LocationId = 9, IsBoss = false, Description = "狡猾的小型類人生物，喜歡在森林中埋伏旅人。", EquipmentDropRate = 1.0, DroppableEquipmentIds = "[104,105,106,107]" },
+            new Monster { Id = 6, Name = "哥布林酋長", Level = 10, MaxHp = 200, CurrentHp = 200, Attack = 25, Defense = 8, ExpReward = 150, LocationId = 10, IsBoss = true, Description = "哥布林部落的首領，身披戰甲，揮舞著巨斧，是森林中最危險的存在。", EquipmentDropRate = 70.0, DroppableEquipmentIds = "[104,105,106,107]" },
 
             // Zone 3: 廢棄礦坑
-            new Monster { Id = 7, Name = "骷髏", Level = 10, MaxHp = 80, CurrentHp = 80, Attack = 18, Defense = 6, ExpReward = 45, LocationId = 12, IsBoss = false, Description = "被黑暗魔法復活的亡者骨骸，永不疲倦地守護著礦坑。" },
-            new Monster { Id = 8, Name = "殭屍", Level = 12, MaxHp = 100, CurrentHp = 100, Attack = 20, Defense = 8, ExpReward = 55, LocationId = 13, IsBoss = false, Description = "腐爛的屍體被邪惡力量驅動，行動遲緩但力量驚人。" },
-            new Monster { Id = 9, Name = "死靈法師", Level = 15, MaxHp = 300, CurrentHp = 300, Attack = 35, Defense = 10, ExpReward = 250, LocationId = 15, IsBoss = true, Description = "操控亡靈的邪惡法師，是礦坑中所有不死生物的主人。" }
+            new Monster { Id = 7, Name = "骷髏", Level = 10, MaxHp = 80, CurrentHp = 80, Attack = 18, Defense = 6, ExpReward = 45, LocationId = 12, IsBoss = false, Description = "被黑暗魔法復活的亡者骨骸，永不疲倦地守護著礦坑。", EquipmentDropRate = 1.0, DroppableEquipmentIds = "[108,109,110,111]" },
+            new Monster { Id = 8, Name = "殭屍", Level = 12, MaxHp = 100, CurrentHp = 100, Attack = 20, Defense = 8, ExpReward = 55, LocationId = 13, IsBoss = false, Description = "腐爛的屍體被邪惡力量驅動，行動遲緩但力量驚人。", EquipmentDropRate = 2.0, DroppableEquipmentIds = "[108,109,110,111]" },
+            new Monster { Id = 9, Name = "死靈法師", Level = 15, MaxHp = 300, CurrentHp = 300, Attack = 35, Defense = 10, ExpReward = 250, LocationId = 15, IsBoss = true, Description = "操控亡靈的邪惡法師，是礦坑中所有不死生物的主人。", EquipmentDropRate = 100.0, DroppableEquipmentIds = "[108,109,110,111]" }
         );
 
         // Seed items (物品)
@@ -102,20 +105,20 @@ public class AppDbContext : DbContext
             new Item { Id = 17, Name = "高級魔力藥水", Type = ItemType.Consumable, PropertiesJson = "{\"HealMp\":50}", RequiredLevel = 8, Description = "濃縮的魔力藥水，恢復 50 點魔力值。" }
         );
 
-        // Seed skills
+        // Seed skills (技能種子資料)
         modelBuilder.Entity<Skill>().HasData(
-            // Warrior skills
-            new Skill { Id = 1, SkillId = "bash", Name = "Bash", Description = "A powerful physical strike.", Type = SkillType.Physical, TargetType = SkillTargetType.SingleEnemy, MpCost = 5, Cooldown = 3, BasePower = 20, ScalingStat = "STR", ScalingMultiplier = 1.5, RequiredClass = ClassType.Warrior, RequiredLevel = 1 },
-            new Skill { Id = 2, SkillId = "taunt", Name = "Taunt", Description = "Force the enemy to focus on you.", Type = SkillType.Physical, TargetType = SkillTargetType.SingleEnemy, MpCost = 3, Cooldown = 10, BasePower = 0, ScalingStat = "CON", ScalingMultiplier = 0, RequiredClass = ClassType.Warrior, RequiredLevel = 3 },
-            new Skill { Id = 3, SkillId = "ironskin", Name = "Iron Skin", Description = "Temporarily increase defense.", Type = SkillType.Physical, TargetType = SkillTargetType.Self, MpCost = 10, Cooldown = 30, BasePower = 0, ScalingStat = "CON", ScalingMultiplier = 0.5, RequiredClass = ClassType.Warrior, RequiredLevel = 5 },
-            // Mage skills
-            new Skill { Id = 4, SkillId = "fireball", Name = "Fireball", Description = "Hurl a ball of fire at the enemy.", Type = SkillType.Magical, TargetType = SkillTargetType.SingleEnemy, MpCost = 10, Cooldown = 2, BasePower = 25, ScalingStat = "INT", ScalingMultiplier = 2.0, RequiredClass = ClassType.Mage, RequiredLevel = 1 },
-            new Skill { Id = 5, SkillId = "icestorm", Name = "Ice Storm", Description = "Unleash a storm of ice on all enemies.", Type = SkillType.Magical, TargetType = SkillTargetType.AllEnemies, MpCost = 25, Cooldown = 10, BasePower = 15, ScalingStat = "INT", ScalingMultiplier = 1.5, RequiredClass = ClassType.Mage, RequiredLevel = 5 },
-            new Skill { Id = 6, SkillId = "manashield", Name = "Mana Shield", Description = "Convert damage to MP cost.", Type = SkillType.Magical, TargetType = SkillTargetType.Self, MpCost = 20, Cooldown = 60, BasePower = 0, ScalingStat = "INT", ScalingMultiplier = 0, RequiredClass = ClassType.Mage, RequiredLevel = 3 },
-            // Priest skills
-            new Skill { Id = 7, SkillId = "heal", Name = "Heal", Description = "Restore HP to yourself.", Type = SkillType.Healing, TargetType = SkillTargetType.Self, MpCost = 8, Cooldown = 3, BasePower = 30, ScalingStat = "WIS", ScalingMultiplier = 2.0, RequiredClass = ClassType.Priest, RequiredLevel = 1 },
-            new Skill { Id = 8, SkillId = "bless", Name = "Bless", Description = "Increase STR and DEX temporarily.", Type = SkillType.Healing, TargetType = SkillTargetType.Self, MpCost = 15, Cooldown = 30, BasePower = 0, ScalingStat = "WIS", ScalingMultiplier = 0.3, RequiredClass = ClassType.Priest, RequiredLevel = 3 },
-            new Skill { Id = 9, SkillId = "smite", Name = "Smite", Description = "Holy damage that scales with WIS.", Type = SkillType.Magical, TargetType = SkillTargetType.SingleEnemy, MpCost = 12, Cooldown = 4, BasePower = 20, ScalingStat = "WIS", ScalingMultiplier = 1.8, RequiredClass = ClassType.Priest, RequiredLevel = 1 }
+            // 戰士技能
+            new Skill { Id = 1, SkillId = "bash", Name = "重擊", Description = "強力的物理攻擊，對敵人造成巨大傷害。", Type = SkillType.Physical, TargetType = SkillTargetType.SingleEnemy, MpCost = 5, Cooldown = 3, BasePower = 20, ScalingStat = "STR", ScalingMultiplier = 1.5, RequiredClass = ClassType.Warrior, RequiredLevel = 1 },
+            new Skill { Id = 2, SkillId = "taunt", Name = "嘲諷", Description = "迫使敵人將注意力集中在你身上。", Type = SkillType.Physical, TargetType = SkillTargetType.SingleEnemy, MpCost = 3, Cooldown = 10, BasePower = 0, ScalingStat = "CON", ScalingMultiplier = 0, RequiredClass = ClassType.Warrior, RequiredLevel = 3 },
+            new Skill { Id = 3, SkillId = "ironskin", Name = "鐵甲術", Description = "暫時提升防禦力，減少受到的傷害。", Type = SkillType.Physical, TargetType = SkillTargetType.Self, MpCost = 10, Cooldown = 30, BasePower = 0, ScalingStat = "CON", ScalingMultiplier = 0.5, RequiredClass = ClassType.Warrior, RequiredLevel = 5 },
+            // 法師技能
+            new Skill { Id = 4, SkillId = "fireball", Name = "火球術", Description = "向敵人投擲一顆熾熱的火球。", Type = SkillType.Magical, TargetType = SkillTargetType.SingleEnemy, MpCost = 10, Cooldown = 2, BasePower = 25, ScalingStat = "INT", ScalingMultiplier = 2.0, RequiredClass = ClassType.Mage, RequiredLevel = 1 },
+            new Skill { Id = 5, SkillId = "icestorm", Name = "冰風暴", Description = "召喚冰霜風暴攻擊所有敵人。", Type = SkillType.Magical, TargetType = SkillTargetType.AllEnemies, MpCost = 25, Cooldown = 10, BasePower = 15, ScalingStat = "INT", ScalingMultiplier = 1.5, RequiredClass = ClassType.Mage, RequiredLevel = 5 },
+            new Skill { Id = 6, SkillId = "manashield", Name = "魔力護盾", Description = "消耗魔力來抵擋傷害。", Type = SkillType.Magical, TargetType = SkillTargetType.Self, MpCost = 20, Cooldown = 60, BasePower = 0, ScalingStat = "INT", ScalingMultiplier = 0, RequiredClass = ClassType.Mage, RequiredLevel = 3 },
+            // 牧師技能
+            new Skill { Id = 7, SkillId = "heal", Name = "治療術", Description = "恢復自身的生命值。", Type = SkillType.Healing, TargetType = SkillTargetType.Self, MpCost = 8, Cooldown = 3, BasePower = 30, ScalingStat = "WIS", ScalingMultiplier = 2.0, RequiredClass = ClassType.Priest, RequiredLevel = 1 },
+            new Skill { Id = 8, SkillId = "bless", Name = "祝福", Description = "暫時提升力量和敏捷。", Type = SkillType.Healing, TargetType = SkillTargetType.Self, MpCost = 15, Cooldown = 30, BasePower = 0, ScalingStat = "WIS", ScalingMultiplier = 0.3, RequiredClass = ClassType.Priest, RequiredLevel = 3 },
+            new Skill { Id = 9, SkillId = "smite", Name = "神聖一擊", Description = "以神聖之力攻擊敵人，傷害隨智慧提升。", Type = SkillType.Magical, TargetType = SkillTargetType.SingleEnemy, MpCost = 12, Cooldown = 4, BasePower = 20, ScalingStat = "WIS", ScalingMultiplier = 1.8, RequiredClass = ClassType.Priest, RequiredLevel = 1 }
         );
 
         // Seed loot table (掉落表)
@@ -141,6 +144,48 @@ public class AppDbContext : DbContext
             new LootTableEntry { Id = 14, MonsterId = 8, ItemId = 14, DropRate = 60, MinQuantity = 1, MaxQuantity = 2 }, // 殭屍 -> 腐肉
             new LootTableEntry { Id = 15, MonsterId = 9, ItemId = 15, DropRate = 100, MinQuantity = 1, MaxQuantity = 1 }, // 死靈法師 -> 法師長袍
             new LootTableEntry { Id = 16, MonsterId = 9, ItemId = 17, DropRate = 60, MinQuantity = 1, MaxQuantity = 3 }  // 死靈法師 -> 高級魔力藥水
+        );
+
+        // Seed equipment sets (套裝)
+        modelBuilder.Entity<EquipmentSet>().HasData(
+            new EquipmentSet { Id = 1, Name = "史萊姆套裝", Description = "新手入門套裝，由史萊姆王的凝膠製成", TotalPieces = 3 },
+            new EquipmentSet { Id = 2, Name = "森林獵人套裝", Description = "敏捷型套裝，適合獵人和遊俠", TotalPieces = 4 },
+            new EquipmentSet { Id = 3, Name = "死靈法師套裝", Description = "魔法型套裝，蘊含死亡的力量", TotalPieces = 4 }
+        );
+
+        // Seed set bonuses (套裝加成)
+        modelBuilder.Entity<SetBonus>().HasData(
+            // 史萊姆套裝加成
+            new SetBonus { Id = 1, SetId = 1, RequiredPieces = 2, BonusJson = "{\"MaxHp\":20}", Description = "HP+20" },
+            new SetBonus { Id = 2, SetId = 1, RequiredPieces = 3, BonusJson = "{\"MaxMp\":15,\"Str\":2,\"Dex\":2,\"Int\":2,\"Wis\":2,\"Con\":2}", Description = "MP+15, 全屬性+2" },
+            // 森林獵人套裝加成
+            new SetBonus { Id = 3, SetId = 2, RequiredPieces = 2, BonusJson = "{\"Atk\":5}", Description = "攻擊+5" },
+            new SetBonus { Id = 4, SetId = 2, RequiredPieces = 3, BonusJson = "{\"Dex\":5}", Description = "敏捷+5" },
+            new SetBonus { Id = 5, SetId = 2, RequiredPieces = 4, BonusJson = "{\"Atk\":10,\"CritRate\":5}", Description = "攻擊+10, 暴擊+5%" },
+            // 死靈法師套裝加成
+            new SetBonus { Id = 6, SetId = 3, RequiredPieces = 2, BonusJson = "{\"Int\":8}", Description = "智力+8" },
+            new SetBonus { Id = 7, SetId = 3, RequiredPieces = 3, BonusJson = "{\"MaxMp\":50}", Description = "MP+50" },
+            new SetBonus { Id = 8, SetId = 3, RequiredPieces = 4, BonusJson = "{\"MagicDamage\":15}", Description = "魔法傷害+15%" }
+        );
+
+        // Seed set equipment items (套裝裝備) - 從 Id=101 開始避免與現有物品衝突
+        modelBuilder.Entity<Item>().HasData(
+            // 史萊姆套裝 (3件)
+            new Item { Id = 101, Name = "史萊姆頭盔", Type = ItemType.Armor, EquipmentSlot = EquipmentSlot.Head, Quality = ItemQuality.Uncommon, SetId = 1, PropertiesJson = "{\"Def\":3,\"Con\":1}", RequiredLevel = 3, Description = "由史萊姆凝膠製成的頭盔，意外地堅韌。" },
+            new Item { Id = 102, Name = "史萊姆護甲", Type = ItemType.Armor, EquipmentSlot = EquipmentSlot.Body, Quality = ItemQuality.Uncommon, SetId = 1, PropertiesJson = "{\"Def\":5,\"MaxHp\":10}", RequiredLevel = 3, Description = "彈性十足的護甲，能吸收部分衝擊。" },
+            new Item { Id = 103, Name = "史萊姆護手", Type = ItemType.Armor, EquipmentSlot = EquipmentSlot.Hands, Quality = ItemQuality.Uncommon, SetId = 1, PropertiesJson = "{\"Def\":2,\"Dex\":1}", RequiredLevel = 3, Description = "黏稠但靈活的護手。" },
+
+            // 森林獵人套裝 (4件)
+            new Item { Id = 104, Name = "獵人皮帽", Type = ItemType.Armor, EquipmentSlot = EquipmentSlot.Head, Quality = ItemQuality.Rare, SetId = 2, PropertiesJson = "{\"Def\":4,\"Dex\":2}", RequiredLevel = 6, Description = "森林獵人戴的皮帽，增強感知能力。" },
+            new Item { Id = 105, Name = "獵人皮甲", Type = ItemType.Armor, EquipmentSlot = EquipmentSlot.Body, Quality = ItemQuality.Rare, SetId = 2, PropertiesJson = "{\"Def\":8,\"Dex\":3}", RequiredLevel = 6, Description = "輕便的皮革護甲，不妨礙行動。" },
+            new Item { Id = 106, Name = "獵人手套", Type = ItemType.Armor, EquipmentSlot = EquipmentSlot.Hands, Quality = ItemQuality.Rare, SetId = 2, PropertiesJson = "{\"Def\":3,\"Atk\":2}", RequiredLevel = 6, Description = "增強握力的皮革手套。" },
+            new Item { Id = 107, Name = "獵人長靴", Type = ItemType.Armor, EquipmentSlot = EquipmentSlot.Feet, Quality = ItemQuality.Rare, SetId = 2, PropertiesJson = "{\"Def\":4,\"Dex\":2}", RequiredLevel = 6, Description = "安靜輕便的長靴，適合潛行。" },
+
+            // 死靈法師套裝 (4件)
+            new Item { Id = 108, Name = "亡靈兜帽", Type = ItemType.Armor, EquipmentSlot = EquipmentSlot.Head, Quality = ItemQuality.Legendary, SetId = 3, PropertiesJson = "{\"Def\":3,\"Int\":5,\"MaxMp\":20}", RequiredLevel = 12, Description = "散發死亡氣息的兜帽，增強魔力。" },
+            new Item { Id = 109, Name = "亡靈長袍", Type = ItemType.Armor, EquipmentSlot = EquipmentSlot.Body, Quality = ItemQuality.Legendary, SetId = 3, PropertiesJson = "{\"Def\":6,\"Int\":8,\"Wis\":5}", RequiredLevel = 12, Description = "死靈法師的長袍，蘊含黑暗能量。" },
+            new Item { Id = 110, Name = "亡靈護腕", Type = ItemType.Armor, EquipmentSlot = EquipmentSlot.Hands, Quality = ItemQuality.Legendary, SetId = 3, PropertiesJson = "{\"Def\":2,\"Int\":3,\"MaxMp\":15}", RequiredLevel = 12, Description = "骨製護腕，增強施法能力。" },
+            new Item { Id = 111, Name = "亡靈之靴", Type = ItemType.Armor, EquipmentSlot = EquipmentSlot.Feet, Quality = ItemQuality.Legendary, SetId = 3, PropertiesJson = "{\"Def\":4,\"Int\":4,\"Wis\":3}", RequiredLevel = 12, Description = "漂浮般輕盈的靴子。" }
         );
     }
 }

@@ -1,3 +1,4 @@
+using KingOfKings.Backend.Data;
 using KingOfKings.Backend.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Hosting;
@@ -76,6 +77,14 @@ namespace KingOfKings.Backend.Services
                             monsterHp = result.MonsterCurrentHp,
                             monsterMaxHp = result.MonsterMaxHp
                         });
+                    }
+
+                    // 戰鬥結束時推送背包更新 (物品掉落即時更新)
+                    if (result.CombatEnded)
+                    {
+                        using var scope2 = _serviceProvider.CreateScope();
+                        var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
+                        await GameHub.PushInventoryUpdateAsync(hubContext, db2, result.PlayerId);
                     }
                 }
                 catch (Exception ex)

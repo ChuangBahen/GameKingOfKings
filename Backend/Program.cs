@@ -22,6 +22,7 @@ builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepositor
 builder.Services.AddScoped<ICombatService, CombatService>();
 builder.Services.AddScoped<ICombatManager, CombatManager>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ISetBonusService, SetBonusService>();
 builder.Services.AddHostedService<GameLoopService>();
 
 // JWT Authentication
