@@ -1,6 +1,8 @@
 Backend/.vs/
 Backend/obj/
 Backend/bin/
+Backend.Tests/obj/
+Backend.Tests/bin/
 *.csProj.user
 *.pubxml.user
 
